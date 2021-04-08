@@ -18,27 +18,27 @@ with open(path + "\..\Pickles\IRRv3.pickle", "rb") as p:
 IRR = {}
 
 
+def class_calc(class_list, _class):
+    number = class_list[0:2].count(_class) + 0.5 * class_list[0:2].count(0)\
+             + 2 * class_list[2:].count(_class) + class_list[2:].count(0)
+    for i in range(3):
+        if class_list[i] == _class and class_list[i + 1] == _class:
+            number += 1
+    return number
+
+
 def conf_calc(class_list):
-    num_of_1s = (0.5 * class_list[0:2].count(1) + 2 * class_list[2:].count(1)) / 9.0 * 6
-    num_of_2s = (0.5 * class_list[0:2].count(2) + 2 * class_list[2:].count(2)) / 9.0 * 6
-    num_of_3s = (0.5 * class_list[0:2].count(3) + 2 * class_list[2:].count(3)) / 9.0 * 6
+    if class_list == [0, 0, 0, 0, 0, 0]:
+        return "Unknown", 0
+    num_of_1s = class_calc(class_list, 1)
+    num_of_2s = class_calc(class_list, 2)
+    num_of_3s = class_calc(class_list, 3)
     if num_of_1s > num_of_2s and num_of_1s > num_of_3s:
-        x = num_of_1s
-        dampen = ((num_of_2s ** 2) + (num_of_3s ** 2)) ** 0.5
-        choice = 'P2P'
+        return 'P2P', num_of_1s / 13
     elif num_of_2s > num_of_1s and num_of_2s > num_of_3s:
-        x = num_of_2s
-        dampen = ((num_of_1s ** 2) + (num_of_3s ** 2)) ** 0.5
-        choice = 'P2C'
+        return 'P2C', num_of_2s / 13
     else:
-        x = num_of_3s
-        dampen = ((num_of_1s ** 2) + (num_of_2s ** 2)) ** 0.5
-        choice = 'C2P'
-    a = 3 - dampen
-    b = 1/3 + dampen
-    const = 0.5 * (1 - (1/3) * dampen)
-    result = 1.019075 * (1 - exp(-5 * x)) * ((1/pi) * atan(a * (x - b)) + const)
-    return choice, max(0, min(result, 1))
+        return 'C2P', num_of_3s / 13
 
 
 def variable_extraction(AS1, AS2, dict_list):
@@ -63,13 +63,49 @@ def element_extraction(key, dict):
             return 3
         else:
             return 0
+count0 = 0
+count1 = 0
+count2 = 0
+count90 = 0
+count80 = 0
+count70 = 0
+count60 = 0
+count50 = 0
+count00 = 0
 
 
 for key in list(set(list(IRR1.keys()) + list(IRR2.keys()) + list(IRR3.keys()))):
     class_list = variable_extraction(key[0], key[1], [IRR1, IRR2, IRR3])  # [1, 1, 0, 0, 0, 0]
     IRR[key] = list(conf_calc(class_list)) + [class_list]
-
+    if class_list.count(0) == 0:
+        count0 += 1
+    if class_list.count(0) == 1:
+        count1 += 1
+    if class_list.count(0) == 2:
+        count2 += 1
+    if IRR[key][1] > 0.9:
+        count90 += 1
+    if IRR[key][1] > 0.8:
+        count80 += 1
+    if IRR[key][1] > 0.7:
+        count70 += 1
+    if IRR[key][1] > 0.6:
+        count60 += 1
+    if IRR[key][1] >= 0.5:
+        count50 += 1
+    if IRR[key][1] < 0.5:
+        count00 += 1
 print(IRR)
+print("number of full class_lists is:", count0)
+print("number of missing 1 classification class_lists is:", count1)
+print("number of missing 2 classification class_lists is:", count2)
+print("number of ToRs above 90% confidence is:", count90)
+print("number of ToRs above 80% confidence is:", count80)
+print("number of ToRs above 70% confidence is:", count70)
+print("number of ToRs above 60% confidence is:", count60)
+print("number of ToRs above 50% confidence is:", count50)
+print("number of ToRs below 50% confidence is:", count00)
+
 
 with open(path + "/../Pickles/IRR_Confidence.pickle", "wb") as p:
     pickle.dump(IRR, p)
