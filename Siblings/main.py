@@ -3,6 +3,7 @@ import codecs
 import re
 import time
 from os import path
+import csv
 
 path = path.abspath(path.dirname(__file__))
 MailDict = {}
@@ -60,3 +61,29 @@ print(siblingDict)
 
 with open(path + "/../Pickles/SiblingsDict.pickle", "wb") as p:
     pickle.dump(siblingDict, p)
+
+
+# with open('RefCompare.csv', mode='w', newline='') as f:
+#     fwrite = csv.writer(f, delimiter=',')
+#     fwrite.writerow(['AS1', 'AS2', 'IRR Prediction', 'Caida Prediction', ' '] * 50)
+#     w = []
+#     i = 0
+#     for k in Ref.keys():
+#         i = i + 1
+#         if k in IRR.keys():
+#             w = w + [k[0], k[1], IRR[k], Ref[k], ' ']
+#         else:
+#             w = w + [k[0], k[1], "Doesn't Exist", Ref[k], ' ']
+#         if i == 50:
+#             fwrite.writerow(w)
+#             w = []
+#             i = 0
+#     for k in (list(set(list(Ref.keys()) + list(IRR.keys())) - set(Ref.keys()))):
+#         i = i + 1
+#         w = w + [k[0], k[1], IRR[k], "Doesn't Exist", ' ']
+#         if i == 50:
+#             fwrite.writerow(w)
+#             w = []
+#             i = 0
+#     if i != 0:
+#         fwrite.writerow(w)
