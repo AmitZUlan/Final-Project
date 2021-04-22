@@ -148,8 +148,8 @@ for i in range(len(remark_blocks)):
     if "end" in remark_blocks[i][0]:
         header = header.split("end")[-1]
         currentremark = False
-    if ".com" in header:
-        header = header.split(".com")[-1]
+    while "peeringdb.com" in header:
+        header = header.replace("peeringdb.com", '')
     while "peer-group:" in header:
         header = header.replace("peer-group:", "")
     if not TruthDict[currentAS][0] or not TruthDict[currentAS][1]:
@@ -226,6 +226,9 @@ for i in range(len(remark_blocks)):
 
 
 print(IRR)
+print("P2P Value is:", list(IRR.values()).count("P2P"))
+print("P2C Value is:", list(IRR.values()).count("P2C"))
+print("C2P Value is:", list(IRR.values()).count("C2P"))
 with open(path + "\..\Pickles\IRRv2.pickle", "wb") as p:
     pickle.dump(IRR, p)
 

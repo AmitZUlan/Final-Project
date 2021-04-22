@@ -4,9 +4,11 @@ import re
 import time
 from os import path
 from math import *
+import csv
 
 st = time.time()
 path = path.abspath(path.dirname(__file__))
+rev_class = {0: 0, 1: 1, 2: 3, 3: 2}
 
 with open(path + "\..\Pickles\IRR.pickle", "rb") as p:
     IRR1 = pickle.load(p)
@@ -47,7 +49,7 @@ def variable_extraction(AS1, AS2, dict_list):
     class_list = []
     for i in range(3):
         class_list.append(element_extraction(key, dict_list[i]))
-        class_list.append(element_extraction(revkey, dict_list[i]))
+        class_list.append(rev_class[element_extraction(revkey, dict_list[i])])
     return class_list
 
 
@@ -63,6 +65,8 @@ def element_extraction(key, dict):
             return 3
         else:
             return 0
+
+
 count0 = 0
 count1 = 0
 count2 = 0
@@ -79,6 +83,9 @@ for key in list(set(list(IRR1.keys()) + list(IRR2.keys()) + list(IRR3.keys()))):
     IRR[key] = list(conf_calc(class_list)) + [class_list]
     if class_list.count(0) == 0:
         count0 += 1
+        variable_extraction(key[0], key[1], [IRR1, IRR2, IRR3])
+        list(conf_calc(class_list))
+        print(key, IRR[key])
     if class_list.count(0) == 1:
         count1 += 1
     if class_list.count(0) == 2:
@@ -95,7 +102,7 @@ for key in list(set(list(IRR1.keys()) + list(IRR2.keys()) + list(IRR3.keys()))):
         count50 += 1
     if IRR[key][1] < 0.5:
         count00 += 1
-print(IRR)
+# print(IRR)
 print("number of full class_lists is:", count0)
 print("number of missing 1 classification class_lists is:", count1)
 print("number of missing 2 classification class_lists is:", count2)
@@ -106,9 +113,18 @@ print("number of ToRs above 60% confidence is:", count60)
 print("number of ToRs above 50% confidence is:", count50)
 print("number of ToRs below 50% confidence is:", count00)
 
-
 with open(path + "/../Pickles/IRR_Confidence.pickle", "wb") as p:
     pickle.dump(IRR, p)
+
+with open(path + '/../Example Files/IRR.csv', mode='w', newline='') as f:
+    fwrite = csv.writer(f, delimiter=',')
+    fwrite.writerow(['AS1', 'AS2', 'Imp/Exp[AS1, AS2]', 'Imp/Exp[AS2, AS1]',
+                     'Remarks[AS1, AS2]', 'Remarks[AS2, AS1]', 'Sets[AS1, AS2]',
+                     'Sets[AS2, AS1]', 'ToR', 'Confidence'])
+    for k in IRR.keys():
+        w = [k[0][2:], k[1][2:]] + IRR[k][2] + [IRR[k][0], IRR[k][1], ' ']
+        fwrite.writerow(w)
+
 
 
 

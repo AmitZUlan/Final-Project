@@ -11,6 +11,8 @@ siblingDict = {}
 delim_import = "mntner:|descr:|admin-c:|tech-c:|upd-to:|auth:|mnt-by:|source:|mnt-nfy:|notify:|person:|address:|phone:|fax-no:|e-mail:|nic-hdl:|remarks:|route:|origin:|aut-num:|as-name:|export:|default:|inet-rtr:|local-as:|ifaddr:|peer:|rs-in:|rs-out:|member-of:|as-set:|members:|peering-set:|peering:|route-set:|mbrs-by-ref:|alias:|route6:|key-cert:|method:|owner:|fingerpr:|certif:|role:|trouble:|mnt-lower:|created:|last-modified:|members-by-ref:|mnt-routes:|inject:|components:|aggr-mtd:|holes:|country:|Mnt-by:|Changed:|as-block:|inet6num:|netname:|status:|org:|inetnum:|interface:|mp-peer:|referral-by:|organisation:|org-name:|org-type:|mnt-ref:|rtr-set:|limerick:|text:|author:|filter:|import:"
 st = time.time()
 
+forbidden_list = []
+
 f = [None] * 61
 for i in range(61):
     f[i] = codecs.open(path + "/../sources/" + str(i + 1) + ".db", encoding='ISO-8859-1')
@@ -48,13 +50,14 @@ for file in f:
                     MailDict[searchsib].append(key)
 
 for key in MailDict.keys():
-    if len(MailDict[key]) < 2:
+    if len(MailDict[key]) < 2 or key in forbidden_list:
         continue
     for value in MailDict[key]:
         HisSiblings = MailDict[key].copy()
         HisSiblings.remove(value)
         for sibling in HisSiblings:
-            siblingDict[(value, sibling)] = ["S2S", key]
+            if value != sibling:
+                siblingDict[(value, sibling)] = ["S2S", key]
 
 
 print(siblingDict)
@@ -63,27 +66,10 @@ with open(path + "/../Pickles/SiblingsDict.pickle", "wb") as p:
     pickle.dump(siblingDict, p)
 
 
-# with open('RefCompare.csv', mode='w', newline='') as f:
-#     fwrite = csv.writer(f, delimiter=',')
-#     fwrite.writerow(['AS1', 'AS2', 'IRR Prediction', 'Caida Prediction', ' '] * 50)
-#     w = []
-#     i = 0
-#     for k in Ref.keys():
-#         i = i + 1
-#         if k in IRR.keys():
-#             w = w + [k[0], k[1], IRR[k], Ref[k], ' ']
-#         else:
-#             w = w + [k[0], k[1], "Doesn't Exist", Ref[k], ' ']
-#         if i == 50:
-#             fwrite.writerow(w)
-#             w = []
-#             i = 0
-#     for k in (list(set(list(Ref.keys()) + list(IRR.keys())) - set(Ref.keys()))):
-#         i = i + 1
-#         w = w + [k[0], k[1], IRR[k], "Doesn't Exist", ' ']
-#         if i == 50:
-#             fwrite.writerow(w)
-#             w = []
-#             i = 0
-#     if i != 0:
-#         fwrite.writerow(w)
+with open(path + '/../Example Files/Siblings.csv', mode='w', newline='') as f:
+    fwrite = csv.writer(f, delimiter=',')
+    fwrite.writerow(['AS1', 'AS2', 'ToR', 'Domain'])
+    for k in siblingDict.keys():
+        w = [k[0][2:], k[1][2:], siblingDict[k][0], siblingDict[k][1]]
+        fwrite.writerow(w)
+

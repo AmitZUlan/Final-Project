@@ -86,7 +86,6 @@ for name in SetsDict.keys():
                 for AS2 in AS2list:
                     if AS2 != AS1:
                         key = (AS1, AS2)
-                        revkey = (AS2, AS1)
                         if AS1 in AS2list and AS2 in AS1list:
                             continue
                         if b1 and not b2 and not b3:
