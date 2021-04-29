@@ -23,8 +23,9 @@ with open(path + "\..\Pickles\Ref.pickle", "rb") as p:
 log = open(path + '/../Example Files/Logs/%s.txt' % datetime.now().strftime('%d.%m.%y %H;%M;%S'), 'w')
 
 
-def rev(input):
+def reverse(input):
     return input[::-1]
+
 
 def LOG(str):
     global log
@@ -103,14 +104,15 @@ def IRR_analysis(given_IRR):
     LOG("\tNumber of ToRs in Ref IRR: %s\n" % number_of_ToRs_in_ref_IRR)
     for key in given_IRR.keys():
         if key[::-1] in given_IRR:
-            if given_IRR[key] == 'Unknown' or given_IRR[rev(key)] == 'Unknown':
+            if given_IRR[key] == 'Unknown' or given_IRR[reverse(key)] == 'Unknown':
                 continue
-            if given_IRR[key] == rev(given_IRR[rev(key)]):
+            if given_IRR[key] == reverse(given_IRR[reverse(key)]):
                 agreements += 1
             else:
                 conflicts += 1
     LOG('\tnumber of 2 - sided agreements is %s\n' % agreements)
     LOG('\tnumber of conflicts is %s\n' % conflicts)
+
 
 def log_IRR(IRR, msg):
     LOG(msg + '\n')
