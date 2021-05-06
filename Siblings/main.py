@@ -2,23 +2,28 @@ import pickle
 import codecs
 import re
 import time
-from os import path
 import csv
 import matplotlib.pyplot as plt
 
 
-path = path.abspath(path.dirname(__file__))
 MailDict = dict()
 OrgDict = dict()
 MNTDict = dict()
 AdminDict = dict()
 techDict = dict()
 notifyDict = dict()
-ASDict = dict()
 siblingDict = dict()
 delim = "mntner:|descr:|admin-c:|tech-c:|upd-to:|auth:|mnt-by:|changed:|source:|mnt-nfy:|notify:|person:|address:|phone:|fax-no:|e-mail:|nic-hdl:|remarks:|route:|origin:|aut-num:|as-name:|export:|default:|inet-rtr:|local-as:|ifaddr:|peer:|rs-in:|rs-out:|member-of:|as-set:|members:|peering-set:|peering:|route-set:|mbrs-by-ref:|alias:|route6:|key-cert:|method:|owner:|fingerpr:|certif:|role:|trouble:|mnt-lower:|created:|last-modified:|members-by-ref:|mnt-routes:|inject:|components:|aggr-mtd:|holes:|country:|Mnt-by:|Changed:|as-block:|inet6num:|netname:|status:|org:|inetnum:|interface:|mp-peer:|referral-by:|organisation:|org-name:|org-type:|mnt-ref:|rtr-set:|limerick:|text:|author:|filter:|import:"
 st = time.time()
 forbidden_list = list()
+sets_siblings = dict()
+
+with open("./../../Pickles/DateDict.pickle", "rb") as p:
+    dateDict = pickle.load(p)
+with open("./../../Pickles/Sets DateDict.pickle", "rb") as p:
+    sets_dateDict = pickle.load(p)
+with open("./../../Pickles/Mem.pickle", "rb") as p:
+    memDict = pickle.load(p)
 
 
 def extract_key(AS):
@@ -28,35 +33,17 @@ def extract_key(AS):
     return key
 
 
-def date_init(block):
-    global ASDict
-    delim_remove = 'changed:'
-    if not block.startswith("aut-num:"):
-        return
-    key = extract_key(block)
-    if key == 'AS40630':
-        a = 3
-    for rem in (re.split(delim.replace("|" + delim_remove, ''), block.lower())):
-        for sib in (rem.split(delim_remove))[1:]:
-            date = re.split(' |\n', sib)
-            i = 0
-            while i < len(date) - 1 and not date[i].isnumeric():
-                i += 1
-            date = (int(date[i]) if date[i].isnumeric() else 0)
-            if key in ASDict.keys():
-                if ASDict[key] > date:
-                    return
-            ASDict[key] = date
+def extract_setname(block):
+    global ASSets
+    set_name = ((block.split("as-set:")[1]).split("\n")[0]).strip()
+    if '#' in set_name:
+        set_name = set_name.split("#")[0]
+    return set_name
 
 
-def changed_analysis(block):
-    global MailDict, ASDict
+def changed_analysis(block, key):
+    global MailDict, dateDict
     delim_remove = 'changed:'
-    if not block.startswith("aut-num:"):
-        return
-    key = extract_key(block)
-    if key in ASDict.keys() and ASDict[key] != 0 and str(ASDict[key]) not in block:
-        return
     for rem in (re.split(delim.replace("|" + delim_remove, ''), block.lower())):
         for sib in (rem.split(delim_remove))[1:]:
             if '@' not in sib:
@@ -67,14 +54,9 @@ def changed_analysis(block):
             MailDict[domain] = list(set(MailDict[domain] + [key]))
 
 
-def org_analysis(block):
-    global OrgDict, ASDict
+def org_analysis(block, key):
+    global OrgDict, dateDict
     delim_remove = 'org:'
-    if not block.startswith("aut-num:"):
-        return
-    key = extract_key(block)
-    if key in ASDict.keys() and ASDict[key] != 0 and str(ASDict[key]) not in block:
-        return
     for rem in (re.split(delim.replace("|" + delim_remove, ''), block.lower())):
         for org in (rem.split(delim_remove))[1:]:
             if 'org-' not in org.lower():
@@ -85,34 +67,34 @@ def org_analysis(block):
             OrgDict[organization] = list(set(OrgDict[organization] + [key]))
 
 
-def field_analysis(block, field_dict, field_delim):
-    global ASDict
+def field_analysis(block, field_dict, field_delim, key, is_sets = False):
     delim_remove = field_delim
-    if not block.startswith("aut-num:"):
-        return
-    key = extract_key(block)
-    if key in ASDict.keys() and ASDict[key] != 0 and str(ASDict[key]) not in block:
-        return
     for rem in (re.split(delim.replace("|" + delim_remove, ''), block.lower())):
         for field in (rem.split(delim_remove))[1:]:
             field_value = field.strip(" \n\t")
             if field_value not in field_dict.keys():
                 field_dict[field_value] = []
-            field_dict[field_value] = list(set(field_dict[field_value] + [key]))
+            if not is_sets:
+                field_dict[field_value] = list(set(field_dict[field_value] + [key]))
+            else:
+                field_dict[field_value] = list(set(field_dict[field_value] + key))
+
 
 
 def block_list_analysis(block_list):
     for block in block_list:
         block = block + "\n"
-        date_init(block)
-    for block in block_list:
-        block = block + "\n"
-        changed_analysis(block)
-        org_analysis(block)
-        field_analysis(block, MNTDict, 'mnt-by:')
-        field_analysis(block, AdminDict, 'admin-c:')
-        field_analysis(block, techDict, 'tech-c:')
-        field_analysis(block, notifyDict, 'notify:')
+        if not block.startswith("aut-num:") and not block.startswith("*xx-num:"): continue
+        key = extract_key(block)
+        date = dateDict.get(key, 0)
+        if date != 0 and str(date) not in block and \
+            str(date)[:4] + '-' + str(date)[4:6] + '-' + str(date)[6:] not in block: continue
+        changed_analysis(block, key)
+        org_analysis(block, key)
+        field_analysis(block, MNTDict, 'mnt-by:', key)
+        field_analysis(block, AdminDict, 'admin-c:', key)
+        field_analysis(block, techDict, 'tech-c:', key)
+        field_analysis(block, notifyDict, 'notify:', key)
 
 
 def sibling_insertion(source_dict, field, forbidden_list=list(), max_len=None):
@@ -132,22 +114,47 @@ def sibling_insertion(source_dict, field, forbidden_list=list(), max_len=None):
                         siblingDict[(value, sibling)][1] += ', %s=%s' % (field, key)
 
 
-f = [None] * 61
-for i in range(61):
-    f[i] = codecs.open(path + "/../sources/" + str(i + 1) + ".db", encoding='ISO-8859-1')
+def plot_dict_hist(dic, graphtitle, xlabel='len of list', ylabel='# of list with len x'):
+    y = [len(val) for val in dic.values()]
+    x = [i for i in range(min(y), max(y) + 1)]
+    y = [y.count(i) for i in x]
+    plt.plot(x, y)
+    plt.grid()
+    plt.yticks([int(max(y) / 50) * i for i in range(50)] + [int(2 * max(y)/250) * i for i in range(int(2 * max(y)/50))])
+    plt.xlabel(xlabel)
+    plt.ylabel(ylabel)
+    plt.suptitle(graphtitle)
+    plt.show()
+
+
+f = [codecs.open(f"./../../Sources/{i+1}.db", encoding='ISO-8859-1') for i in range(61)]
 for file in f:
     print(time.time() - st)
-    if file is not None:
-        block_list = file.read().split("\n\n")
-        block_list_analysis(block_list)
+    if file is None: continue
+    block_list = file.read().split("\n\n")
+    block_list_analysis(block_list)
+    for block in block_list:
+        if not block.startswith("as-set:"): continue
+        set_name = extract_setname(block)
+        date = dateDict.get(set_name, 0)
+        if date != 0 and str(date) not in block and\
+            str(date)[:4] + '-' + str(date)[4:6] + '-' + str(date)[6:] not in block: continue
+        field_analysis(block, sets_siblings, 'mnt-by:', memDict.get(set_name, []), is_sets=True)
 
 
 sibling_insertion(MailDict, 'domain')
 sibling_insertion(OrgDict, 'org')
-sibling_insertion(MNTDict, 'mnt-by', max_len=30)
+sibling_insertion(MNTDict, 'mnt-by', max_len=100)
 sibling_insertion(AdminDict, 'admin')
 sibling_insertion(techDict, 'tech')
 sibling_insertion(notifyDict, 'notify')
+
+plot_dict_hist(MailDict, 'MailDict')
+plot_dict_hist(OrgDict, 'OrgDict')
+plot_dict_hist(MNTDict, 'MNTDict')
+plot_dict_hist(AdminDict, 'AdminDict')
+plot_dict_hist(techDict, 'techDict')
+plot_dict_hist(notifyDict, 'notifyDict')
 
 
 print(siblingDict)
@@ -165,11 +172,12 @@ b = [i for i in range(25)]
 plt.hist(a, bins=b)
 plt.show()
 
-with open(path + "/../Pickles/SiblingsDict.pickle", "wb") as p:
+
+with open("./../../Pickles/SiblingsDict.pickle", "wb") as p:
     pickle.dump(siblingDict, p)
 
 
-with open(path + '/../Example Files/Siblings.csv', mode='w', newline='') as f:
+with open("./../../Example Files/Siblings.csv", mode='w', newline='') as f:
     fwrite = csv.writer(f, delimiter=' ', dialect='excel')
     fwrite.writerow(['AS1', 'AS2', 'ToR', 'Heuristic'])
     for k in siblingDict.keys():

@@ -1,31 +1,21 @@
 import pickle
-import re
-import time
-import csv
-from os import path
 from datetime import datetime
-#import matplotlib.pyplot as plt
+import multiprocessing as mp
 
 
-path = path.abspath(path.dirname(__file__))
-with open(path + "\..\Pickles\IRR_Confidence.pickle", "rb") as p:
-    conf_dict = pickle.load(p)
-    IRR = {}
-    for k, v in conf_dict.items():
-        IRR[k] = v[0]
-with open(path + "\..\Pickles\IRR.pickle", "rb") as p:
+with open("./../../Pickles/IRR_Confidence_class_only.pickle", "rb") as p:
+    IRR = pickle.load(p)
+with open("./../../Pickles/IRR.pickle", "rb") as p:
     IRR1 = pickle.load(p)
-with open(path + "\..\Pickles\IRRv2.pickle", "rb") as p:
+with open("./../../Pickles/IRRv2.pickle", "rb") as p:
     IRR2 = pickle.load(p)
-with open(path + "\..\Pickles\IRRv3.pickle", "rb") as p:
+with open("./../../Pickles/IRRv3.pickle", "rb") as p:
     IRR3 = pickle.load(p)
-with open(path + "\..\Pickles\Ref.pickle", "rb") as p:
+with open("./../../Pickles/Ref.pickle", "rb") as p:
     Ref = pickle.load(p)
-log = open(path + '/../Example Files/Logs/%s.txt' % datetime.now().strftime('%d.%m.%y %H;%M;%S'), 'w')
 
 
-def LOG(str):
-    global log
+def LOG(log, str):
     log.write(str)
 
 
@@ -51,20 +41,16 @@ def coverage(given_IRR, key, AS_coverage_list1, AS_coverage_list2):
             AS_coverage_list2.append(AS)
 
 
-def is_match(class1, class2):
-    return 1 if class1 == class2 else 0
-
-
 def key_analysis(given_dicts, key1, reverse=False):
     dict1, dict2 = given_dicts
-    key2 = tuple(reversed(key1)) if reverse else key1
+    key2 = key1[::-1] if reverse else key1
     if key1 not in dict1.keys() or key2 not in dict2.keys():
         return 0, 0
     if dict1[key1] == 'Unknown' or dict2[key2] == 'Unknown':
         return 0, 0
     val1 = dict1[key1]
-    val2 = ''.join(reversed(dict2[key2])) if reverse else dict2[key2]
-    match = is_match(val1, val2)
+    val2 = dict2[key2][::-1] if reverse else dict2[key2]
+    match = val1 == val2
     return 1, match
 
 
@@ -74,29 +60,7 @@ def count_mistake(AS, mistakes):
     mistakes[AS] += 1
 
 
-def check_mistakes(given_IRR, mistakes):
-    results = list()
-    for i in range(10, 50, 1):
-        forbidden_list = list()
-        two_sided_classifications = 0
-        two_sided_agreements = 0
-        AS_coverage_list_1_side = list()
-        AS_coverage_list_2_side = list()
-        for AS, count in mistakes.items():
-            if count > i:
-                forbidden_list.append(AS)
-        for key in given_IRR:
-            if key[0] in forbidden_list: continue
-            key_2_sided, key_2_sided_match = key_analysis((given_IRR, given_IRR), key, True)
-            two_sided_classifications += key_2_sided
-            two_sided_agreements += key_2_sided_match
-            coverage(given_IRR, key, AS_coverage_list_1_side, AS_coverage_list_2_side)
-        results.append((i, two_sided_classifications, two_sided_agreements, len(AS_coverage_list_1_side), len(AS_coverage_list_2_side)))
-    return results
-
-
-def IRR_analysis(given_IRR, forbidden_list=[]):
-    global Ref
+def IRR_analysis(given_IRR, log):
     matching_classifications = 0
     two_sided_classifications = 0
     two_sided_agreements = 0
@@ -128,12 +92,12 @@ def IRR_analysis(given_IRR, forbidden_list=[]):
         }
     }
     for key in given_IRR.keys():
-        if key[0] in forbidden_list: continue
         ToR_count += 1
-        p = int(1000 * ToR_count/len(given_IRR.keys()))
-        if p != prev:
-            print(str(p/10) + '%')
-        prev = p
+        # one_over_percent = 100
+        # p = int(one_over_percent * ToR_count/len(given_IRR.keys()))
+        # if p != prev:
+        #     print(str(100 * p / one_over_percent) + '%')
+        # prev = p
         key_in_both_dicts, key_match = key_analysis((given_IRR, Ref), key)
         known_keys_in_both += key_in_both_dicts
         matching_classifications += key_match
@@ -151,46 +115,61 @@ def IRR_analysis(given_IRR, forbidden_list=[]):
 
     # print(str(round(float(P2P[0])/(P2P[0] + P2P[1] + P2P[2]) * 100, 2)) + "%")
     padding = 12
-    LOG('\tP2C matching rate (relative to CAIDA) is %s\n' % (str(round(float(P2C[1]) / (P2C[1] + P2C[2]) * 100, 2)) + "%"))
-    LOG('\tC2P matching rate (relative to CAIDA) is %s\n' % (str(round(float(C2P[2]) / (C2P[1] + C2P[2]) * 100, 2)) + "%"))
-    LOG('\tConfusion matrix is:               %s, %s, %s\n'
+    LOG(log, '\tP2C matching rate (relative to CAIDA) is %s\n' % (str(round(float(P2C[1]) / (P2C[1] + P2C[2]) * 100, 2)) + "%"))
+    LOG(log, '\tC2P matching rate (relative to CAIDA) is %s\n' % (str(round(float(C2P[2]) / (C2P[1] + C2P[2]) * 100, 2)) + "%"))
+    LOG(log, '\tConfusion matrix is:               %s, %s, %s\n'
         % ('IRR P2P'.ljust(padding), 'IRR P2C'.ljust(12), 'IRR C2P'.ljust(padding)))
-    LOG('\t' + ' ' * len('Confusion matrix is:\t') + '%s, %s, %s, %s\n' % ('CAIDA P2P'.rjust(padding),
+    LOG(log, '\t' + ' ' * len('Confusion matrix is:\t') + '%s, %s, %s, %s\n' % ('CAIDA P2P'.rjust(padding),
         str(P2P[0]).rjust(padding), str(P2P[1]).rjust(padding), str(P2P[2]).rjust(padding)))
-    LOG('\t' + ' ' * len('Confusion matrix is:\t') + '%s, %s, %s, %s\n' % ('CAIDA P2C'.rjust(padding),
+    LOG(log, '\t' + ' ' * len('Confusion matrix is:\t') + '%s, %s, %s, %s\n' % ('CAIDA P2C'.rjust(padding),
         str(P2C[0]).rjust(padding), str(P2C[1]).rjust(padding), str(P2C[2]).rjust(padding)))
-    LOG('\t' + ' ' * len('Confusion matrix is:\t') + '%s, %s, %s, %s\n' % ('CAIDA C2P'.rjust(padding),
+    LOG(log, '\t' + ' ' * len('Confusion matrix is:\t') + '%s, %s, %s, %s\n' % ('CAIDA C2P'.rjust(padding),
         str(C2P[0]).rjust(padding), str(C2P[1]).rjust(padding), str(C2P[2]).rjust(padding)))
 
-    LOG('\tWe can classify %s ToRs\n' % ToR_count)
-    #LOG('\tWe can classify %s ASNs\n' % len(AS_coverage_list))
-    LOG('\tThere are %s 2-sided classifications\n' % two_sided_classifications)
-    LOG('\tThere are %s 1-sided classifications\n' % (ToR_count - two_sided_classifications))
-    LOG('\toverall matching rate is: %s%%\n' % round(float(matching_classifications) / known_keys_in_both * 100, 2))
-    LOG("\tNumber of Matching Classifications: %s\n" % matching_classifications)
-    LOG("\tNumber of Known ToRs in this and CAIDA's IRR: %s\n" % known_keys_in_both)
-    LOG("\tNumber of ToRs in Ref IRR: %s\n" % number_of_ToRs_in_ref_IRR)
-    LOG('\tratio of 2-sided agreements is %s%%\n' % round(100 * two_sided_agreements/two_sided_classifications, 2))
-    LOG('\tnumber of conflicts is %s%%\n' % round(100 * (1 - two_sided_agreements/two_sided_classifications), 2))
+    LOG(log, '\tWe can classify %s ToRs\n' % (ToR_count - unknown))
+    #LOG(log, '\tWe can classify %s ASNs\n' % len(AS_coverage_list))
+    LOG(log, '\tThere are %s 2-sided classifications\n' % two_sided_classifications)
+    LOG(log, '\tThere are %s 1-sided classifications\n' % (ToR_count - two_sided_classifications - unknown))
+    LOG(log, '\toverall matching rate is: %s%%\n' % round(float(matching_classifications) / known_keys_in_both * 100, 2))
+    LOG(log, "\tNumber of Matching Classifications: %s\n" % matching_classifications)
+    LOG(log, "\tNumber of Known ToRs in this and CAIDA's IRR: %s\n" % known_keys_in_both)
+    LOG(log, "\tNumber of ToRs in Ref IRR: %s\n" % number_of_ToRs_in_ref_IRR)
+    LOG(log, '\tratio of 2-sided agreements is %s%%\n' % round(100 * two_sided_agreements/two_sided_classifications, 2))
+    LOG(log, '\tratio of conflicts is %s%%\n' % round(100 * (1 - two_sided_agreements/two_sided_classifications), 2))
     return mistakes
 
 
 def log_IRR(IRR, msg):
-    LOG(msg + '\n')
-    mistakes = IRR_analysis(IRR)
-    results = check_mistakes(IRR, mistakes)
-    LOG('\n')
-    with open('./../Pickles/%sv2.pickle' % msg[:-1], 'wb') as p:
-        pickle.dump(results, p)
-    LOG('\n')
+    log = open(f'./../../Example Files/Logs/%s {msg[:-1]}.txt' % datetime.now().strftime('%d.%m.%y %H;%M;%S'), 'w')
+    LOG(log, msg + '\n')
+    mistakes = IRR_analysis(IRR, log)
+    with open(f'./../../Pickles/{msg[:-1]} Mistakes.pickle', 'wb') as p:
+        pickle.dump(mistakes, p)
+    LOG(log, '\n')
+    print(f'{msg[:-1]} Process Finished.')
+    log.close()
 
 
-log_IRR(IRR1, 'I_E Dictionary:')
-log_IRR(IRR2, 'Remarks Dictionary:')
-log_IRR(IRR3, 'Sets Dictionary:')
-log_IRR(IRR, 'Overall Dictionary:')
-log.close()
-# with open(path + '/../Example Files/RefCompare.csv', mode='w', newline='') as f:
+if __name__ == '__main__':
+    args_list = [
+        (IRR1, 'I_E Dictionary:'),
+        (IRR2, 'Remarks Dictionary:'),
+        (IRR3, 'Sets Dictionary:'),
+        (IRR, 'Overall Dictionary:')
+    ]
+    processes = list()
+    for arg in args_list:
+        msg = arg[1]
+        current_arg = (arg[0], arg[1])
+        processes.append(mp.Process(target=log_IRR, args=current_arg))
+
+    for process in processes:
+        process.start()
+    for process in processes:
+        process.join()
+
+
+# with open("./../../../Example Files/RefCompare.csv", mode='w', newline='') as f:
 #     fwrite = csv.writer(f, delimiter=',')
 #     fwrite.writerow(['AS1', 'AS2', 'IRR Prediction', 'Caida Prediction'])
 #     for k in Ref.keys():

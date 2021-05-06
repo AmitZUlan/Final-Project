@@ -1,18 +1,14 @@
 import pickle
-import codecs
-import re
 import time
-from os import path
 
 st = time.time()
-path = path.abspath(path.dirname(__file__))
-IRR = {}
+IRR = dict()
 
-with open(path + "\..\Pickles\Mem.pickle", "rb") as p:
+with open("./../../Pickles/Mem.pickle", "rb") as p:
     MemDict = pickle.load(p)
-with open(path + "\..\Pickles\Sets.pickle", "rb") as p:
+with open("./../../Pickles/Sets.pickle", "rb") as p:
     SetsDict = pickle.load(p)
-with open(path + "\..\Pickles\\Names.pickle", "rb") as p:
+with open("./../../Pickles/Names.pickle", "rb") as p:
     NamesDict = pickle.load(p)
 
 customers = ["customer", "custs", "downstream", "client", "downlink"]
@@ -20,7 +16,7 @@ providers = ["provider", "upstream", "uplink"]
 
 
 def swap(NamesDict, SetsDict, name, MemDict, namelist):
-    retval = []
+    retval = list()
     if name in MemDict.keys():
         return MemDict[name]
     if name.startswith("AS") and name[2:].isnumeric():
@@ -99,7 +95,7 @@ for name in SetsDict.keys():
                             continue
 
 
-with open(path + "/../Pickles/IRRv3.pickle", "wb") as p:
+with open("./../../Pickles/IRRv3.pickle", "wb") as p:
     pickle.dump(IRR, p)
-with open(path + "/../Pickles/Mem.pickle", "wb") as p:
+with open("./../../Pickles/Mem.pickle", "wb") as p:
     pickle.dump(MemDict, p)

@@ -1,68 +1,88 @@
 import pickle
 import codecs
 import re
-from os import path
 
-path = path.abspath(path.dirname(__file__))
-ASSets = {}
-delim = "mntner:|descr:|admin-c:|tech-c:|upd-to:|auth:|mnt-by:|changed:|source:|mnt-nfy:|notify:|person:|address:|phone:|fax-no:|e-mail:|nic-hdl:|remarks:|route:|origin:|aut-num:|as-name:|import:|default:|inet-rtr:|local-as:|ifaddr:|peer:|rs-in:|rs-out:|member-of:|as-set:|import:|peering-set:|peering:|route-set:|mbrs-by-ref:|alias:|route6:|key-cert:|method:|owner:|fingerpr:|certif:|role:|trouble:|mnt-lower:|created:|last-modified:|members-by-ref:|mnt-routes:|inject:|components:|aggr-mtd:|holes:|country:|Mnt-by:|Changed:|as-block:|inet6num:|netname:|status:|org:|inetnum:|interface:|mp-peer:|referral-by:|organisation:|org-name:|org-type:|mnt-ref:|rtr-set:|limerick:|text:|author:|filter:"
-
-
-def solve_name(name):
-    if ":" not in name and "-" not in name:
-        return name
-    names = re.split(":|-")
-    for nm in names:
-        if nm.lower().startswith("as") and nm.lower().split("as")[1].isnumeric():
-            return nm.upper()
-        if nm.isnumeric():
-            return "AS" + nm
+ASSets = dict()
+dateDict = dict()
+delim = "mntner:|descr:|admin-c:|tech-c:|upd-to:|auth:|mnt-by:|changed:|source:|mnt-nfy:|notify:|person:|address:|phone:|fax-no:|e-mail:|nic-hdl:|remarks:|route:|origin:|aut-num:|as-name:|export:|default:|inet-rtr:|local-as:|ifaddr:|peer:|rs-in:|rs-out:|member-of:|as-set:|members:|peering-set:|peering:|route-set:|mbrs-by-ref:|alias:|route6:|key-cert:|method:|owner:|fingerpr:|certif:|role:|trouble:|mnt-lower:|created:|last-modified:|members-by-ref:|mnt-routes:|inject:|components:|aggr-mtd:|holes:|country:|Mnt-by:|Changed:|as-block:|inet6num:|netname:|status:|org:|inetnum:|interface:|mp-peer:|referral-by:|organisation:|org-name:|org-type:|mnt-ref:|rtr-set:|limerick:|text:|author:|filter:|import:"
 
 
-def block_analysis(block):
+def extract_setname(block):
     global ASSets
-    if not block.startswith("as-set:"):
-        return
     set_name = ((block.split("as-set:")[1]).split("\n")[0]).strip()
     if '#' in set_name:
         set_name = set_name.split("#")[0]
-    if set_name not in ASSets.keys():
-        ASSets[set_name] = []
+    return set_name
+
+
+def block_analysis(block, set_name):
+    global ASSets
+    ASSets[set_name] = list() if set_name not in ASSets.keys() else ASSets[set_name]
     members = set_member_extraction(block)
-    if members:
-        ASSets[set_name] = ASSets[set_name] + members
+    if not members: return
+    ASSets[set_name] += members
 
 
 def set_member_extraction(block):
-    members = []
-    for member in block.split("members:")[1:]:
-        member = re.split(delim, member)[0]
-        for m in (member.split(",\n ")[:-1]):
-            m = m.split("\n")[0]
-            membersline = re.split(" |,", m)
-            while "" in membersline: membersline.remove("")
-            for mem in membersline:
-                if mem.startswith("#"): break
-                members.append(mem.strip())
-        m = (member.split("\n ")[-1]).split("\n")[0]
-        membersline = re.split(" |,", m)
-        while "" in membersline: membersline.remove("")
-        for mem in membersline:
-            if mem.startswith("#"):
-                break
-            members.append(mem.strip())
+    members = list()
+    delim_remove = 'members:'
+    for rem in (re.split(delim.replace("|" + delim_remove, ''), block)):
+        for field in (rem.split(delim_remove))[1:]:
+            members = re.split(' |,|\n', field.strip())
+    members = [member for member in members if member != '']
     return members
+
+
+def date_init(block, key):
+    global dateDict
+    delim_remove = 'changed:'
+    for rem in (re.split(delim.replace("|" + delim_remove, ''), block.lower())):
+        for field in (rem.split(delim_remove))[1:]:
+            date = re.split(' |\n', field.strip())
+            i = 0
+            while i < len(date) - 1 and not date[i].isnumeric():
+                i += 1
+            date = (int(date[i]) if date[i].isnumeric() else 0)
+            if key in dateDict.keys():
+                if dateDict[key] > date:
+                    return
+            dateDict[key] = date
+    delim_remove = 'last-modified:'
+    for rem in (re.split(delim.replace("|" + delim_remove, ''), block.lower())):
+        for field in (rem.split(delim_remove))[1:]:
+            date = field.split('t')[0].strip()
+            date = date.split('-')
+            date = ''.join(date)
+            date = int(date) if date.isnumeric() else 0
+            if key in dateDict.keys():
+                if dateDict[key] > date:
+                    return
+            dateDict[key] = date
 
 
 f = [None] * 61
 for i in range(61):
-    f[i] = codecs.open(path + "/../Sources/" + str(i + 1) + ".db", encoding='ISO-8859-1')
+    f[i] = codecs.open("./../../Sources/" + str(i + 1) + ".db", encoding='ISO-8859-1')
 for file in f:
-    if file is not None:
-        for block in file.read().split("\n\n"):
-            block += '\n'
-            block_analysis(block)
+    if file is None: continue
+    block_list = file.read().split("\n\n")
+    for block in block_list:
+        block += '\n'
+        if not block.startswith("as-set:"): continue
+        set_name = extract_setname(block)
+        date_init(block, set_name)
+    for block in block_list:
+        block += '\n'
+        if not block.startswith("as-set:"): continue
+        set_name = extract_setname(block)
+        date = dateDict.get(set_name, 0)
+        if date != 0 and str(date) not in block and\
+            str(date)[:4] + '-' + str(date)[4:6] + '-' + str(date)[6:] not in block: continue
+        block_analysis(block, set_name)
 
 
-with open(path + "/../Pickles/Sets.pickle", "wb") as p:
+with open("./../../Pickles/Sets DateDict.pickle", "wb") as p:
+    pickle.dump(dateDict, p)
+
+with open("./../../Pickles/Sets.pickle", "wb") as p:
     pickle.dump(ASSets, p)

@@ -1,21 +1,17 @@
 import pickle
-import codecs
-import re
 import time
-from os import path
 
-path = path.abspath(path.dirname(__file__))
-
-with open(path + "\..\Pickles\ASDict.pickle", "rb") as p:
+with open("./../../Pickles/ASDict.pickle", "rb") as p:
     ASDict = pickle.load(p)
-with open(path + "\..\Pickles\Sets.pickle", "rb") as p:
+with open("./../../Pickles/Sets.pickle", "rb") as p:
     SetsDict = pickle.load(p)
-with open(path + "\..\Pickles\\Names.pickle", "rb") as p:
+with open("./../../Pickles/Names.pickle", "rb") as p:
     NamesDict = pickle.load(p)
 
 
-def decipher_name(NamesDict, SetsDict, name, count, MemDict, namelist):
-    retval = []
+def decipher_name(name, namelist):
+    global MemDict, SetsDict, NamesDict
+    retval = list()
     if name in MemDict.keys():
         return MemDict[name]
     if name.startswith("AS") and name[2:].isnumeric():
@@ -30,7 +26,7 @@ def decipher_name(NamesDict, SetsDict, name, count, MemDict, namelist):
         for v in SetsDict[name]:
             if v != name:
                 namelist.append(name)
-                newretval = decipher_name(NamesDict, SetsDict, v, count + 1, MemDict, namelist)
+                newretval = decipher_name(v, namelist)
                 namelist.remove(name)
                 retval = list(set(retval + newretval))
             else:
@@ -50,56 +46,43 @@ def decipher_name(NamesDict, SetsDict, name, count, MemDict, namelist):
     return retval
 
 
-def swap_entry(AS_list, origin, k, impexp, v):
-    global MemDict
-    global ASDict
-    if AS_list != [] and AS_list[0] != origin:
-        for AS in AS_list:
-            if AS in ASDict[k][impexp].keys():
-                if ASDict[k][impexp][AS] != 'A':
-                    if v[origin] == 'A':
-                        ASDict[k][impexp][AS] = v[origin]
-                    if ASDict[k][impexp][AS] == "Error":
-                        ASDict[k][impexp][AS] = []
-                    ASDict[k][impexp][AS] = list(set(ASDict[k][impexp][AS] + v[origin]))
-            else:
-                ASDict[k][impexp][AS] = v[origin]
-        del ASDict[k][impexp][origin]
+def swap_entry(AS_list, origin, k, v, exp=False):
+    global MemDict, ASDict
+    if AS_list == [] or (len(AS_list) == 1 and AS_list[0] == origin): return
+    for AS in AS_list:
+        if AS in ASDict[k][exp].keys():
+            if ASDict[k][exp][AS] == 'A': continue
+
+            if v[origin] == 'A':
+                ASDict[k][exp][AS] = v[origin]
+                continue
+            ASDict[k][exp][AS] = list() if ASDict[k][exp][AS] == 'Error' else ASDict[k][exp][AS]
+            ASDict[k][exp][AS] = list(set(ASDict[k][exp][AS] + v[origin]))
+        else:
+            ASDict[k][exp][AS] = v[origin]
+    del ASDict[k][exp][origin]
 
 
-MemDict = {}
+MemDict = dict()
 st = time.time()
-i = 0
 for k, v in ASDict.items():
     print(time.time() - st)
-    for AS in (v[0].copy()).keys():
-        AS_list = decipher_name(NamesDict, SetsDict, AS, 0, MemDict, [])
-        swap_entry(AS_list, AS, k, 0, v[0].copy())
+    imp_dict_copy = v[0].copy()
+    exp_dict_copy = v[1].copy()
+    for AS in imp_dict_copy.keys():
+        AS_list = decipher_name(AS, [])
+        swap_entry(AS_list, AS, k, imp_dict_copy)
 
-    for AS in (v[1].copy()).keys():
-        AS_list = decipher_name(NamesDict, SetsDict, AS, 0, MemDict, [])
-        swap_entry(AS_list, AS, k, 1, v[1].copy())
+    for AS in exp_dict_copy.keys():
+        AS_list = decipher_name(AS, [])
+        swap_entry(AS_list, AS, k, exp_dict_copy, exp=True)
 
 
-print(ASDict)
-
-
-with open(path + "/../Pickles/ASDictv2_temp.pickle", "wb") as p:
+with open("./../../Pickles/ASDictv2.pickle", "wb") as p:
     pickle.dump(ASDict, p)
-with open(path + "/../Pickles/Mem.pickle", "wb") as p:
+with open("./../../Pickles/Mem.pickle", "wb") as p:
     pickle.dump(MemDict, p)
-with open(path + "/../MemDict.txt", "w") as f:
+with open("./../../MemDict.txt", "w") as f:
     for k, v in MemDict.items():
         f.write(str(k) + ": " + str(v) + "\n")
-# with open("UpgradedImp.pickle", "rb") as p:
-#     DictImp = pickle.load(p)
-# with open("UpgradedExp.pickle", "rb") as p:
-#     DictExp = pickle.load(p)
-# for k, v in DictImp.items():
-#     for val in v:
-#         if not val[0].split("AS")[1].isnumeric():
-#             print(1)
-# for k, v in DictExp.items():
-#     for val in v:
-#         if not val[0].split("AS")[1].isnumeric():
-#             print(1)
+

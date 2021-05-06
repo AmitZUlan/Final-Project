@@ -2,55 +2,55 @@ import pickle
 import codecs
 import re
 import time
-from os import path
-
-path = path.abspath(path.dirname(__file__))
-ASDict = {}
+ASDict = dict()
+ASNames = dict()
+dateDict = dict()
+ASNames = dict()
 delim = "mntner:|descr:|admin-c:|tech-c:|upd-to:|auth:|mnt-by:|changed:|source:|mnt-nfy:|notify:|person:|address:|phone:|fax-no:|e-mail:|nic-hdl:|remarks:|route:|origin:|aut-num:|as-name:|export:|default:|inet-rtr:|local-as:|ifaddr:|peer:|rs-in:|rs-out:|member-of:|as-set:|members:|peering-set:|peering:|route-set:|mbrs-by-ref:|alias:|route6:|key-cert:|method:|owner:|fingerpr:|certif:|role:|trouble:|mnt-lower:|created:|last-modified:|members-by-ref:|mnt-routes:|inject:|components:|aggr-mtd:|holes:|country:|Mnt-by:|Changed:|as-block:|inet6num:|netname:|status:|org:|inetnum:|interface:|mp-peer:|referral-by:|organisation:|org-name:|org-type:|mnt-ref:|rtr-set:|limerick:|text:|author:|filter:|import:"
 
 st = time.time()
 
+def format_date(date_int):
+    return
 
-def extract_key(AS):
-    key = "AS" + (AS.lower().split("as")[1]).split("\n")[0]
-    if '#' in key:
-        key = key.split('#')[0]
-    return key
+def extract_key(block):
+    AS = "AS" + (block.lower().split("as")[1]).split("\n")[0]
+    if '#' in AS:
+        AS = AS.split('#')[0]
+    return AS
 
 
-def policy_analysis(policy):
-    i = 0
-    policylist = []
-    while policy[i] != "accept" and policy[i] != "announce" and policy[i] != "import": i += 1
-    if i + 1 == len(policy):
-        policy = 'Error'
-    if policy[i + 1] == "any":
-        policy = 'A'
-    else:
-        i += 1
-        while i < len(policy):
-            if policy[i].isnumeric():
-                policylist.append("AS" + policy[i].upper())
-            if policy[i].lower().startswith("as") and policy[i][2:].isnumeric():
-                policylist.append(policy[i].upper())
-            if '#' in policy[i]:
-                policy = policy[:i]
-                continue
-            if policy[i].lower().startswith("as"):
-                policylist.append(policy[i].upper())
-            i += 1
-        policy = 'O'
-    return policy, policylist
+def date_init(block, key):
+    global dateDict
+    delim_remove = 'changed:'
+    for rem in (re.split(delim.replace("|" + delim_remove, ''), block.lower())):
+        for field in (rem.split(delim_remove))[1:]:
+            date = re.split(' |\n', field.strip())
+            i = 0
+            while i < len(date) - 1 and not date[i].isnumeric():
+                i += 1
+            date = (int(date[i]) if date[i].isnumeric() else 0)
+            dateDict[key] = max(dateDict.get(key, 0), date)
+    delim_remove = 'last-modified:'
+    for rem in (re.split(delim.replace("|" + delim_remove, ''), block.lower())):
+        for field in (rem.split(delim_remove))[1:]:
+            date = field.split('t')[0].strip()
+            date = date.split('-')
+            date = ''.join(date)
+            date = int(date) if date.isnumeric() else 0
+            dateDict[key] = max(dateDict.get(key, 0), date)
 
 
 def import_analysis(imp, delim):
     policylist = None
     if "ipv6" in imp.lower():
         return None, None, None
+    if ' afi ' in imp.lower() and all(word not in imp.lower() for word in ['ipv4', ' any.', 'afi any']):
+        return None, None, None
     if delim in imp.lower():
         imp = imp.lower().split(delim)[1]
     source = re.split(" |\t|\n|\;|\<|\>|\$|\^|\+", imp.lower())
-    while "" in source: source.remove("")
+    source = [s for s in source if s != '']
     if not source:
         return None, None, None
     policy = source
@@ -90,46 +90,107 @@ def add_source(key, source, policy, policylist, imporexp):
             ASDict[key][imporexp][source] = list(set(ASDict[key][imporexp][source] + policylist))
 
 
-def AS_analysis(block, delim_remove):
-    global ASDict
-    if not block.startswith("aut-num:"):
-        return
-    key = extract_key(block)
-    if key not in ASDict.keys():
-        ASDict[key] = ({}, {})
+def AS_analysis(block, delim_remove, AS):
+    global ASDict, delim
+    if AS not in ASDict.keys():
+        ASDict[AS] = ({}, {})
+    pre_as_word = 'to ' if delim_remove == 'export:' else 'from '
+    tuple_index = delim_remove == 'export:'
+    if delim_remove != 'import:' and \
+            (pre_as_word == 'from ' or not tuple_index): raise ValueError
     for exp in (re.split(delim.replace("|" + delim_remove, ''), block.lower())):
         for imp in (exp.split(delim_remove))[1:]:
-            if delim_remove == "import:":
-                source, policy, policylist = import_analysis(imp, "from ")
-                add_source(key, source, policy, policylist, 0)
-            if delim_remove == "export:":
-                source, policy, policylist = import_analysis(imp, "to ")
-                add_source(key, source, policy, policylist, 1)
+            source, policy, policylist = import_analysis(imp, pre_as_word)
+            add_source(AS, source, policy, policylist, tuple_index)
 
 
-def block_list_analysis(block_list, delim_remove):
-    for block in block_list:
-        block = block + "\n"
-        AS_analysis(block, delim_remove)
+def policy_analysis(policy):
+    i = 0
+    policylist = list()
+    while policy[i] != "accept" and policy[i] != "announce" and policy[i] != "import": i += 1
+    if i + 1 == len(policy):
+        policy = 'Error'
+    if policy[i + 1] == "any":
+        policy = 'A'
+    else:
+        i += 1
+        while i < len(policy):
+            if policy[i].isnumeric():
+                policylist.append("AS" + policy[i].upper())
+            if policy[i].lower().startswith("as") and policy[i][2:].isnumeric():
+                policylist.append(policy[i].upper())
+            if '#' in policy[i]:
+                policy = policy[:i]
+                continue
+            if policy[i].lower().startswith("as"):
+                policylist.append(policy[i].upper())
+            i += 1
+        policy = 'O'
+    return policy, policylist
 
 
-f = [None] * 61
-for i in range(61):
-    f[i] = codecs.open(path + "/../Sources/" + str(i + 1) + ".db", encoding='ISO-8859-1')
+def extract_name(block, AS):
+    global ASNames
+    if "as-name:" in block:
+        name = block.split("as-name:")[1].split("\n")[0].strip()
+        if '#' in name:
+            name = name.split('#')[0]
+        if name.lower() != "unspecified":
+            ASNames[name] = AS
+
+
+f = [codecs.open(f"./../../Sources/{i+1}.db", encoding='ISO-8859-1') for i in range(61)]
+
 for file in f:
     print(time.time() - st)
-    if file is not None:
-        block_list = file.read().split("\n\n")
-        block_list_analysis(block_list.copy(), "import:")
-        block_list_analysis(block_list.copy(), "export:")
+    if file is None: continue
+    block_list = file.read().split("\n\n")
+    for block in block_list:
+        if not block.startswith("aut-num:") and not block.startswith("*xx-num:"): continue
+        block += "\n"
+        key = extract_key(block)
+        date_init(block, key)
+
+
+for file in f:
+    file.close()
+
+f = [codecs.open(f"./../../Sources/{i+1}.db", encoding='ISO-8859-1') for i in range(61)]
+count1 = 0
+count2 = 0
+count3 = 0
+
+for file in f:
+    print(time.time() - st)
+    if file is None: continue
+    block_list = file.read().split("\n\n")
+    for block in block_list:
+        if not block.startswith("aut-num:") and not block.startswith("*xx-num:"): continue
+        count1 += 1
+        block += "\n"
+        AS = extract_key(block)
+        date = dateDict.get(AS, 0)
+        if date != 0 and str(date) not in block and\
+            str(date)[:4] + '-' + str(date)[4:6] + '-' + str(date)[6:] not in block: continue
+        count2 += 1
+        extract_name(block, AS)
+        AS_analysis(block, 'import:', AS)
+        AS_analysis(block, 'export:', AS)
+
+for file in f:
+    file.close()
 
 count = 0
+print(ASDict)
 for AS in ASDict.keys():
     if len(ASDict[AS][0].keys()) == 0:
         count += 1
 print(count)
 print(len(list(ASDict.keys())))
-with open(path + "/../Pickles/ASDict.pickle", "wb") as p:
+with open("./../../Pickles/DateDict.pickle", "wb") as p:
+    pickle.dump(dateDict, p)
+with open("./../../Pickles/Names.pickle", "wb") as p:
+    pickle.dump(ASNames, p)
+with open("./../../Pickles/ASDict.pickle", "wb") as p:
     pickle.dump(ASDict, p)
-print(ASDict)
 
