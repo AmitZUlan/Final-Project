@@ -10,8 +10,10 @@ delim = "mntner:|descr:|admin-c:|tech-c:|upd-to:|auth:|mnt-by:|changed:|source:|
 
 st = time.time()
 
+
 def format_date(date_int):
     return
+
 
 def extract_key(block):
     AS = "AS" + (block.lower().split("as")[1]).split("\n")[0]
@@ -78,16 +80,16 @@ def add_source(key, source, policy, policylist, imporexp):
     if policy is None:
         return
     if source not in ASDict[key][imporexp].keys():
-        ASDict[key][imporexp][source] = []
+        ASDict[key][imporexp][source] = set()
     if policy == 'A':
         ASDict[key][imporexp][source] = policy
-    if policy == 'Error' and ASDict[key][imporexp][source] == []:
+    if policy == 'Error' and ASDict[key][imporexp][source] == set():
         ASDict[key][imporexp][source] = policy
     if policy == 'O':
         if ASDict[key][imporexp][source] != 'A' and policylist:
             if ASDict[key][imporexp][source] == "Error":
-                ASDict[key][imporexp][source] = []
-            ASDict[key][imporexp][source] = list(set(ASDict[key][imporexp][source] + policylist))
+                ASDict[key][imporexp][source] = set()
+            ASDict[key][imporexp][source] = ASDict[key][imporexp][source].update(policylist)
 
 
 def AS_analysis(block, delim_remove, AS):
@@ -106,24 +108,24 @@ def AS_analysis(block, delim_remove, AS):
 
 def policy_analysis(policy):
     i = 0
-    policylist = list()
+    policylist = set()
     while policy[i] != "accept" and policy[i] != "announce" and policy[i] != "import": i += 1
     if i + 1 == len(policy):
         policy = 'Error'
-    if policy[i + 1] == "any":
+    if policy[i + 1] == "any" or "{0.0.0.0/" in policy[i + 1]:
         policy = 'A'
     else:
         i += 1
         while i < len(policy):
             if policy[i].isnumeric():
-                policylist.append("AS" + policy[i].upper())
+                policylist.add("AS" + policy[i].upper())
             if policy[i].lower().startswith("as") and policy[i][2:].isnumeric():
-                policylist.append(policy[i].upper())
+                policylist.add(policy[i].upper())
             if '#' in policy[i]:
                 policy = policy[:i]
                 continue
             if policy[i].lower().startswith("as"):
-                policylist.append(policy[i].upper())
+                policylist.add(policy[i].upper())
             i += 1
         policy = 'O'
     return policy, policylist
@@ -139,46 +141,34 @@ def extract_name(block, AS):
             ASNames[name] = AS
 
 
-f = [codecs.open(f"./../../Sources/{i+1}.db", encoding='ISO-8859-1') for i in range(61)]
+for i in range(1, 62):
+    with codecs.open(f"./../../Sources/{i}.db", encoding='ISO-8859-1') as file:
+        print(f'{i}:', time.time() - st)
+        if file is None: continue
+        block_list = file.read().split("\n\n")
+        for block in block_list:
+            if not block.startswith("aut-num:") and not block.startswith("*xx-num:"): continue
+            block += "\n"
+            key = extract_key(block)
+            date_init(block, key)
 
-for file in f:
-    print(time.time() - st)
-    if file is None: continue
-    block_list = file.read().split("\n\n")
-    for block in block_list:
-        if not block.startswith("aut-num:") and not block.startswith("*xx-num:"): continue
-        block += "\n"
-        key = extract_key(block)
-        date_init(block, key)
 
+for i in range(1, 62):
+    with codecs.open(f"./../../Sources/{i}.db", encoding='ISO-8859-1') as file:
+        print(f'{i}:', time.time() - st)
+        if file is None: continue
+        block_list = file.read().split("\n\n")
+        for block in block_list:
+            if not block.startswith("aut-num:") and not block.startswith("*xx-num:"): continue
+            block += "\n"
+            AS = extract_key(block)
+            date = dateDict.get(AS, 0)
+            if date != 0 and str(date) not in block and\
+                str(date)[:4] + '-' + str(date)[4:6] + '-' + str(date)[6:] not in block: continue
+            extract_name(block, AS)
+            AS_analysis(block, 'import:', AS)
+            AS_analysis(block, 'export:', AS)
 
-for file in f:
-    file.close()
-
-f = [codecs.open(f"./../../Sources/{i+1}.db", encoding='ISO-8859-1') for i in range(61)]
-count1 = 0
-count2 = 0
-count3 = 0
-
-for file in f:
-    print(time.time() - st)
-    if file is None: continue
-    block_list = file.read().split("\n\n")
-    for block in block_list:
-        if not block.startswith("aut-num:") and not block.startswith("*xx-num:"): continue
-        count1 += 1
-        block += "\n"
-        AS = extract_key(block)
-        date = dateDict.get(AS, 0)
-        if date != 0 and str(date) not in block and\
-            str(date)[:4] + '-' + str(date)[4:6] + '-' + str(date)[6:] not in block: continue
-        count2 += 1
-        extract_name(block, AS)
-        AS_analysis(block, 'import:', AS)
-        AS_analysis(block, 'export:', AS)
-
-for file in f:
-    file.close()
 
 count = 0
 print(ASDict)

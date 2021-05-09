@@ -32,13 +32,11 @@ def phase_comparison():
     return correct, not_correct
 
 
-def coverage(given_IRR, key, AS_coverage_list1, AS_coverage_list2):
-    if given_IRR[key] != 'Unknown': return
-    if key[0] not in AS_coverage_list1:
-        AS_coverage_list1.append(key[0])
+def coverage(given_IRR, key, AS_coverage_set1, AS_coverage_set2):
+    if given_IRR[key] == 'Unknown': return
+    AS_coverage_set1.add(key[0])
     for AS in key:
-        if AS not in AS_coverage_list2:
-            AS_coverage_list2.append(AS)
+        AS_coverage_set2.add(AS)
 
 
 def key_analysis(given_dicts, key1, reverse=False):
@@ -54,10 +52,11 @@ def key_analysis(given_dicts, key1, reverse=False):
     return 1, match
 
 
-def count_mistake(AS, mistakes):
-    if AS not in mistakes.keys():
-        mistakes[AS] = 0
-    mistakes[AS] += 1
+def add_key_to_set(dic, key, condition=True):
+    if condition:
+        temp_set = dic.get(key[0], set())
+        temp_set.add(key)
+        dic[key[0]] = temp_set
 
 
 def IRR_analysis(given_IRR, log):
@@ -67,12 +66,14 @@ def IRR_analysis(given_IRR, log):
     ToR_count = 0
     prev = -1
     unknown = list(given_IRR.values()).count('Unknown')
-    AS_coverage_list_1_side = list()
-    AS_coverage_list_2_side = list()
+    AS_coverage_set_1_side = set()
+    AS_coverage_set_2_side = set()
     number_of_ToRs_in_our_IRR = len(list(given_IRR.keys())) - unknown
     number_of_ToRs_in_ref_IRR = len(list(Ref.keys()))
     known_keys_in_both = 0
     mistakes = dict()
+    classifications = dict()
+    classifications_2_sided = dict()
     #correct, not_correct = phase_comparison()
     confusion_matrix = {
         'P2P': {
@@ -104,9 +105,10 @@ def IRR_analysis(given_IRR, log):
         key_2_sided, key_2_sided_match = key_analysis((given_IRR, given_IRR), key, True)
         two_sided_classifications += key_2_sided
         two_sided_agreements += key_2_sided_match
-        coverage(given_IRR, key, AS_coverage_list_1_side, AS_coverage_list_2_side)
-        if key_2_sided and not key_2_sided_match:
-            count_mistake(key[0], mistakes)
+        coverage(given_IRR, key, AS_coverage_set_1_side, AS_coverage_set_2_side)
+        add_key_to_set(mistakes, key, key_2_sided and not key_2_sided_match)
+        add_key_to_set(classifications_2_sided, key, key_2_sided)
+        add_key_to_set(classifications, key)
         if key_in_both_dicts:
             confusion_matrix[Ref[key]][given_IRR[key]] += 1
     P2P = [confusion_matrix['P2P']['P2P'], confusion_matrix['P2P']['P2C'], confusion_matrix['P2P']['C2P']]
@@ -127,7 +129,8 @@ def IRR_analysis(given_IRR, log):
         str(C2P[0]).rjust(padding), str(C2P[1]).rjust(padding), str(C2P[2]).rjust(padding)))
 
     LOG(log, '\tWe can classify %s ToRs\n' % (ToR_count - unknown))
-    #LOG(log, '\tWe can classify %s ASNs\n' % len(AS_coverage_list))
+    LOG(log, '\tWe can classify %s, %s ASNs\n' % (len(AS_coverage_set_1_side), len(AS_coverage_set_2_side)))
+    LOG(log, '\tUnknown is %s\n' % unknown)
     LOG(log, '\tThere are %s 2-sided classifications\n' % two_sided_classifications)
     LOG(log, '\tThere are %s 1-sided classifications\n' % (ToR_count - two_sided_classifications - unknown))
     LOG(log, '\toverall matching rate is: %s%%\n' % round(float(matching_classifications) / known_keys_in_both * 100, 2))
@@ -136,15 +139,19 @@ def IRR_analysis(given_IRR, log):
     LOG(log, "\tNumber of ToRs in Ref IRR: %s\n" % number_of_ToRs_in_ref_IRR)
     LOG(log, '\tratio of 2-sided agreements is %s%%\n' % round(100 * two_sided_agreements/two_sided_classifications, 2))
     LOG(log, '\tratio of conflicts is %s%%\n' % round(100 * (1 - two_sided_agreements/two_sided_classifications), 2))
-    return mistakes
+    return mistakes, classifications_2_sided, classifications
 
 
 def log_IRR(IRR, msg):
     log = open(f'./../../Example Files/Logs/%s {msg[:-1]}.txt' % datetime.now().strftime('%d.%m.%y %H;%M;%S'), 'w')
     LOG(log, msg + '\n')
-    mistakes = IRR_analysis(IRR, log)
+    mistakes, classifications_2_sided, classifications = IRR_analysis(IRR, log)
     with open(f'./../../Pickles/{msg[:-1]} Mistakes.pickle', 'wb') as p:
         pickle.dump(mistakes, p)
+    with open(f'./../../Pickles/{msg[:-1]} Classifications 2-Sided.pickle', 'wb') as p:
+        pickle.dump(classifications_2_sided, p)
+    with open(f'./../../Pickles/{msg[:-1]} Classifications.pickle', 'wb') as p:
+        pickle.dump(classifications, p)
     LOG(log, '\n')
     print(f'{msg[:-1]} Process Finished.')
     log.close()

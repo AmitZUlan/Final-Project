@@ -12,7 +12,7 @@ with open("./../../Pickles/Names.pickle", "rb") as p:
     NamesDict = pickle.load(p)
 
 customers = ["customer", "custs", "downstream", "client", "downlink"]
-providers = ["provider", "upstream", "uplink"]
+providers = ["provider", "upstream", "uplink", "backbone"]
 
 
 def swap(NamesDict, SetsDict, name, MemDict, namelist):
@@ -93,6 +93,17 @@ for name in SetsDict.keys():
                         if not b1 and not b2 and b3:
                             IRR[key] = "P2C"
                             continue
+    if '-backbone' in name.lower():
+        AS1list = name[:name.lower().find("-backbone")]
+        AS1list = swap(NamesDict, SetsDict, AS1list, MemDict, [])
+        if not AS1list: continue
+        for AS1 in AS1list:
+            for AS2 in AS2list:
+                if AS2 == AS1: continue
+                key = (AS1, AS2)
+                if AS1 in AS2list and AS2 in AS1list:
+                    continue
+                IRR[key] = "C2P"
 
 
 with open("./../../Pickles/IRRv3.pickle", "wb") as p:

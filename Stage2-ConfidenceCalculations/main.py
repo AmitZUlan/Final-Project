@@ -92,7 +92,6 @@ for xi, yi in zip(x, y):
 plt.show()
 
 
-
 for key in list(set(list(IRR1.keys()) + list(IRR2.keys()) + list(IRR3.keys()))):
     class_list = variable_extraction(key[0], key[1], [IRR1, IRR2, IRR3])  # [1, 1, 0, 0, 0, 0]
     value = list(conf_calc(class_list))

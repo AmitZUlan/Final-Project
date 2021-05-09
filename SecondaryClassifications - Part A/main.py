@@ -91,6 +91,8 @@ def add_entry(block, AS1, tor, is_export=False):
             source = [source] if source[:2].lower() == 'as' and source[2:].isnumeric() else MemDict[source]
             for AS2 in source:
                 AS2 = AS2.upper()
+                if (AS1, AS2) == ('AS6724', 'AS8859'):
+                    breakpoint()
                 if (AS1, AS2) in IRR.keys() and IRR[(AS1, AS2)] != tor:
                     continue
                     if tor == 'P2C' or IRR[(AS1, AS2)] == 'P2C':
@@ -113,23 +115,21 @@ provider = ["provider", "upstream", "uplink"]
 TruthDict = dict()
 IRR = dict()
 
-f = [None] * 61
-for i in range(61):
-    f[i] = codecs.open(f"./../../Sources/{i+1}.db", encoding='ISO-8859-1')
-for file in f:
-    print(time.time() - st)
-    if file is None: continue
-    blocks = file.read().split("\n\n")
-    for block in blocks:
-        block += "\n"
-        if not block.startswith("aut-num:") and not block.startswith("*xx-num:"): continue
-        AS = extract_key(block)
-        date = DateDict.get(AS, 0)
-        if date != 0 and str(date) not in block and\
-            str(date)[:4] + '-' + str(date)[4:6] + '-' + str(date)[6:] not in block: continue
-        if 'remarks:' not in block: continue
-        if 'import:' not in block and 'export:' not in block: continue
-        block_analysis(block, AS)
+for i in range(1, 62):
+    with codecs.open(f"./../../Sources/{i}.db", encoding='ISO-8859-1') as file:
+        print(f'{i}:', time.time() - st)
+        if file is None: continue
+        blocks = file.read().split("\n\n")
+        for block in blocks:
+            block += "\n"
+            if not block.startswith("aut-num:") and not block.startswith("*xx-num:"): continue
+            AS = extract_key(block)
+            date = DateDict.get(AS, 0)
+            if date != 0 and str(date) not in block and\
+                str(date)[:4] + '-' + str(date)[4:6] + '-' + str(date)[6:] not in block: continue
+            if 'remarks:' not in block: continue
+            if 'import:' not in block and 'export:' not in block: continue
+            block_analysis(block, AS)
 
 currentAS = remark_blocks[0][2]
 current_remark = ""
@@ -138,6 +138,8 @@ for header, block, AS in remark_blocks:
         current_remark = ""
     currentAS = AS
     header = create_header(header.lower())
+    if "peerings at DE-CIX Frankfurt:".lower() in header:
+        breakpoint()
     current_remark = "" if "peer" in header else current_remark
     current_remark = "provider" if any(word in header for word in provider) else current_remark
     TruthDict[currentAS][0] = True if any(word in header for word in provider) else TruthDict[currentAS][0]

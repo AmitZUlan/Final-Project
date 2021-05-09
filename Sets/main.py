@@ -1,7 +1,9 @@
 import pickle
 import codecs
+import time
 import re
 
+st = time.time()
 ASSets = dict()
 dateDict = dict()
 delim = "mntner:|descr:|admin-c:|tech-c:|upd-to:|auth:|mnt-by:|changed:|source:|mnt-nfy:|notify:|person:|address:|phone:|fax-no:|e-mail:|nic-hdl:|remarks:|route:|origin:|aut-num:|as-name:|export:|default:|inet-rtr:|local-as:|ifaddr:|peer:|rs-in:|rs-out:|member-of:|as-set:|members:|peering-set:|peering:|route-set:|mbrs-by-ref:|alias:|route6:|key-cert:|method:|owner:|fingerpr:|certif:|role:|trouble:|mnt-lower:|created:|last-modified:|members-by-ref:|mnt-routes:|inject:|components:|aggr-mtd:|holes:|country:|Mnt-by:|Changed:|as-block:|inet6num:|netname:|status:|org:|inetnum:|interface:|mp-peer:|referral-by:|organisation:|org-name:|org-type:|mnt-ref:|rtr-set:|limerick:|text:|author:|filter:|import:"
@@ -60,25 +62,24 @@ def date_init(block, key):
             dateDict[key] = date
 
 
-f = [None] * 61
-for i in range(61):
-    f[i] = codecs.open("./../../Sources/" + str(i + 1) + ".db", encoding='ISO-8859-1')
-for file in f:
-    if file is None: continue
-    block_list = file.read().split("\n\n")
-    for block in block_list:
-        block += '\n'
-        if not block.startswith("as-set:"): continue
-        set_name = extract_setname(block)
-        date_init(block, set_name)
-    for block in block_list:
-        block += '\n'
-        if not block.startswith("as-set:"): continue
-        set_name = extract_setname(block)
-        date = dateDict.get(set_name, 0)
-        if date != 0 and str(date) not in block and\
-            str(date)[:4] + '-' + str(date)[4:6] + '-' + str(date)[6:] not in block: continue
-        block_analysis(block, set_name)
+for i in range(1, 62):
+    with codecs.open(f"./../../Sources/{i}.db", encoding='ISO-8859-1') as file:
+        print(f'{i}:', time.time() - st)
+        if file is None: continue
+        block_list = file.read().split("\n\n")
+        for block in block_list:
+            block += '\n'
+            if not block.startswith("as-set:"): continue
+            set_name = extract_setname(block)
+            date_init(block, set_name)
+        for block in block_list:
+            block += '\n'
+            if not block.startswith("as-set:"): continue
+            set_name = extract_setname(block)
+            date = dateDict.get(set_name, 0)
+            if date != 0 and str(date) not in block and\
+                str(date)[:4] + '-' + str(date)[4:6] + '-' + str(date)[6:] not in block: continue
+            block_analysis(block, set_name)
 
 
 with open("./../../Pickles/Sets DateDict.pickle", "wb") as p:

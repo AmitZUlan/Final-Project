@@ -1,6 +1,7 @@
 import pickle
 import time
 
+
 st = time.time()
 ASDict = dict()
 with open("./../../Pickles/ASDictv2.pickle", "rb") as p:
@@ -23,7 +24,12 @@ for AS1, (imp_dict, exp_dict) in ASDict.items():
         key = (AS1, AS2)
         if AS2 not in exp_dict.keys() or imp_dict[AS2] == "Error" or exp_dict[AS2] == "Error":
             IRR[key] = "Unknown"
-        elif imp_dict[AS2] == 'A' and exp_dict[AS2] != 'A':
+        elif imp_dict[AS2] == 'A' and exp_dict[AS2] == 'A':
+            # condition = max(len(ASDict[AS1][0].keys()), len(ASDict[AS1][1].keys())) >\
+            #             max(len(ASDict.get(AS2, [{}, {}])[0].keys()), len(ASDict.get(AS2, [{}, {}])[1].keys()))
+            condition = list(ASDict[AS1][1].values()).count('A') > list(ASDict.get(AS2, [{}, {}])[1].values()).count('A')
+            IRR[key] = 'P2C' if condition else 'C2P'
+        elif imp_dict[AS2] == 'A':
             IRR[key] = "C2P"
         elif exp_dict[AS2] == 'A':
             IRR[key] = "P2C"
