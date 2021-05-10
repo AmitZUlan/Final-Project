@@ -18,60 +18,61 @@ import numpy as np
 #     plt.show()
 
 
-for msg in ['I_E Dictionary', 'Remarks Dictionary', 'Sets Dictionary']:
-    result_list_2_sided = list()
-    result_list = list()
-    for mistake_threshold in range(101):
-        if not path.exists(f'./../../Pickles/Mistakes/{msg}/Mistake Threshold {mistake_threshold}.pickle'): continue
-        with open(f'./../../Pickles/Mistakes/{msg}/Mistake Threshold {mistake_threshold}.pickle', 'rb') as p:
-            temp_result = pickle.load(p)
-            result_list_2_sided += [temp_result[0]]
-            result_list += [temp_result[1]]
-    result_list = list(zip(*result_list))
-    result_list_2_sided = list(zip(*result_list_2_sided))
-    two_sided_classifications = np.array(result_list[1])
-    two_sided_agreements = np.array(result_list[2])
-    y = [result_list_2_sided[2][i]/result_list_2_sided[1][i] for i in range(40)]
-    x = [result_list_2_sided[1][i]/result_list_2_sided[1][-1] for i in range(40)]
-    y2 = [round((y[i] - y[i + 1])/(x[i] - x[i + 1]), 4) for i in range(39)]
-    y = [round(result_list_2_sided[2][i]/result_list_2_sided[1][i], 4) for i in range(40)]
-    x = [round(result_list_2_sided[1][i]/result_list_2_sided[1][-1], 4) for i in range(40)]
-    # y2 = [round(result_list[2][i]/result_list[1][i], 2) for i in range(40)]
-    # x2 = [round(result_list[1][i]/result_list[1][-1], 2) for i in range(40)]
+def plot_result_list(result_list, with_respect_to_ToRs, msg, max_threshold=10**8, isDate=False):
+    assert len(result_list[1]) == 101 or isDate
+    y = [round(result_list[2][i]/result_list[1][i], 2) for i in range(len(result_list[1])) if i < max_threshold]
+    x = [round(result_list[1][i]/result_list[1][-1], 2) for i in range(len(result_list[1])) if i < max_threshold]
+    temp_dict = dict()
+    for i in range(len(y)):
+        temp_dict[y[i]] = x[i]
+    y, x = zip(*temp_dict.items())
     plt.scatter(x, y)
-    # plt.scatter(x2, y2)
-    # plt.legend(['2-Sided', 'Overall'])
-    plt.suptitle(msg)
-    plt.xlabel('Coverage Ratio')
-    plt.ylabel('Agreements Ratio')
-    i = 1
     for xi, yi in zip(x, y):
-        i *= -1
         label = f"({xi}, {yi})"
         plt.annotate(label,
                      (xi, yi),
                      textcoords="offset points",
-                     xytext=(i * 50, -5),
+                     xytext=(0, 10),
                      ha='center',
-                     # arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0.5',
-                     #                 color='k'),
                      )
-    # for xi, yi in zip(x2, y2):
-    #     label = f"({xi}, {yi})"
-    #     plt.annotate(label,
-    #                  (xi, yi),
-    #                  textcoords="offset points",
-    #                  xytext=(0, 10),
-    #                  ha='center')
-    plt.show()
+    plt.suptitle(msg)
+    plt.xlabel('Coverage')
+    plt.ylabel('Confidence')
+    if isDate:
+        plt.savefig(f"./../../Example Files/Plots/Confidence vs. Coverage/{msg} Earliest Date='None'.png", dpi=300)
+    else:
+        plt.savefig(f"./../../Example Files/Plots/Confidence vs. Coverage/{msg} with respect to {with_respect_to_ToRs} ToRs, max_threshold={max_threshold - 1}.png", dpi=300)
+    plt.close()
 
-    # fig, plots = plt.subplots(2, sharex=True)
-    # plots[0].scatter(mistake_threshold, two_sided_classifications)
-    # plots[1].scatter(mistake_threshold, two_sided_agreements)
-    # fig.suptitle(msg)
-    # plt.xticks(range(41))
-    # plt.xlabel('Coverage Ratio')
-    # plots[0].set_ylabel('2-Sided Agreements/2-Sided Classifications')
-    # plots[1].set_ylabel('2-Sided Agreements/Classifications')
-    # plt.show()
+
+# for msg in ['I_E Dictionary', 'Remarks Dictionary']:
+#     result_list = list()
+#     for date_threshold in range(2020 * 10 ** 4, 1950 * 10 ** 4, -10 ** 4):
+#         if not path.exists(f'./../../Pickles/Dates/{msg}/Oldest Date={date_threshold}.pickle'): continue
+#         with open(f'./../../Pickles/Dates/{msg}/Oldest Date={date_threshold}.pickle', 'rb') as p:
+#             result_list += pickle.load(p)
+#     assert result_list != list()
+#     result_list = list(zip(*result_list))
+#     plot_result_list(result_list, None, msg, isDate=True)
+
+
+for msg in ['I_E Dictionary', 'Remarks Dictionary', 'Sets Dictionary']:
+    result_list_2_sided = list()
+    result_list = list()
+    for mistake_threshold in range(101):
+        if not path.exists(f'./../../Pickles/Mistakes/{msg}/Mistake Threshold is {mistake_threshold}%.pickle'): continue
+        with open(f'./../../Pickles/Mistakes/{msg}/Mistake Threshold is {mistake_threshold}%.pickle', 'rb') as p:
+            temp_result = pickle.load(p)
+            result_list_2_sided += [temp_result[0]]
+            result_list += [temp_result[1]]
+    assert result_list != list()
+    result_list = list(zip(*result_list))
+    result_list_2_sided = list(zip(*result_list_2_sided))
+
+    plot_result_list(result_list_2_sided, '2-Sided', msg, 41)
+    plot_result_list(result_list, 'Overall', msg, 41)
+    plot_result_list(result_list_2_sided, '2-Sided', msg, 101)
+    plot_result_list(result_list, 'Overall', msg, 101)
+
+
 

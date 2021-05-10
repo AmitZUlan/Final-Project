@@ -16,7 +16,7 @@ def format_date(date_int):
 
 
 def extract_key(block):
-    AS = "AS" + (block.lower().split("as")[1]).split("\n")[0]
+    AS = "AS" + (block.lower().split("as")[1]).split("\n")[0].strip()
     if '#' in AS:
         AS = AS.split('#')[0]
     return AS
@@ -89,7 +89,7 @@ def add_source(key, source, policy, policylist, imporexp):
         if ASDict[key][imporexp][source] != 'A' and policylist:
             if ASDict[key][imporexp][source] == "Error":
                 ASDict[key][imporexp][source] = set()
-            ASDict[key][imporexp][source] = ASDict[key][imporexp][source].update(policylist)
+            ASDict[key][imporexp][source].update(policylist)
 
 
 def AS_analysis(block, delim_remove, AS):
@@ -117,9 +117,9 @@ def policy_analysis(policy):
     else:
         i += 1
         while i < len(policy):
-            if policy[i].isnumeric():
+            if policy[i].strip().isnumeric():
                 policylist.add("AS" + policy[i].upper())
-            if policy[i].lower().startswith("as") and policy[i][2:].isnumeric():
+            if policy[i].lower().startswith("as") and policy[i][2:].strip().isnumeric():
                 policylist.add(policy[i].upper())
             if '#' in policy[i]:
                 policy = policy[:i]
@@ -132,13 +132,14 @@ def policy_analysis(policy):
 
 
 def extract_name(block, AS):
-    global ASNames
+    global ASNames, count
     if "as-name:" in block:
         name = block.split("as-name:")[1].split("\n")[0].strip()
         if '#' in name:
             name = name.split('#')[0]
         if name.lower() != "unspecified":
-            ASNames[name] = AS
+            ASNames[name] = ASNames.get(name, set())
+            ASNames[name].add(AS)
 
 
 for i in range(1, 62):
@@ -168,7 +169,6 @@ for i in range(1, 62):
             extract_name(block, AS)
             AS_analysis(block, 'import:', AS)
             AS_analysis(block, 'export:', AS)
-
 
 count = 0
 print(ASDict)

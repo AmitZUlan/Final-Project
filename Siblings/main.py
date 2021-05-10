@@ -4,6 +4,7 @@ import re
 import time
 import csv
 import matplotlib.pyplot as plt
+from collections import Counter
 
 MailDict = dict()
 OrgDict = dict()
@@ -11,6 +12,7 @@ MNTDict = dict()
 AdminDict = dict()
 techDict = dict()
 notifyDict = dict()
+AS_Siblings = dict()
 siblingDict = dict()
 delim = "mntner:|descr:|admin-c:|tech-c:|upd-to:|auth:|mnt-by:|changed:|source:|mnt-nfy:|notify:|person:|address:|phone:|fax-no:|e-mail:|nic-hdl:|remarks:|route:|origin:|aut-num:|as-name:|export:|default:|inet-rtr:|local-as:|ifaddr:|peer:|rs-in:|rs-out:|member-of:|as-set:|members:|peering-set:|peering:|route-set:|mbrs-by-ref:|alias:|route6:|key-cert:|method:|owner:|fingerpr:|certif:|role:|trouble:|mnt-lower:|created:|last-modified:|members-by-ref:|mnt-routes:|inject:|components:|aggr-mtd:|holes:|country:|Mnt-by:|Changed:|as-block:|inet6num:|netname:|status:|org:|inetnum:|interface:|mp-peer:|referral-by:|organisation:|org-name:|org-type:|mnt-ref:|rtr-set:|limerick:|text:|author:|filter:|import:|mnt-irt:"
 st = time.time()
@@ -23,10 +25,12 @@ with open("./../../Pickles/Sets DateDict.pickle", "rb") as p:
     sets_dateDict = pickle.load(p)
 with open("./../../Pickles/Mem.pickle", "rb") as p:
     memDict = pickle.load(p)
+with open("./../../Pickles/Names.pickle", "rb") as p:
+    NamesDict = pickle.load(p)
 
 
 def extract_key(AS):
-    key = "AS" + (AS.lower().split("as")[1]).split("\n")[0]
+    key = "AS" + (AS.lower().split("as")[1]).split("\n")[0].strip()
     if '#' in key:
         key = key.split('#')[0]
     return key
@@ -79,8 +83,9 @@ def field_analysis(block, field_dict, field_delim, key, is_sets=False):
                 field_dict[field_value].update(key)
 
 
-def mnt_sibling_insertion(mnt_dict, field):
-    global siblingDict
+def mnt_sibling_insertion(mnt_dict):
+    # global AS_Siblings
+    new_mnt_dict = dict()
     for key in mnt_dict.keys():
         if 'as' not in key.lower(): continue
         if len(mnt_dict[key]) < 2: continue
@@ -88,14 +93,16 @@ def mnt_sibling_insertion(mnt_dict, field):
             if not key.lower().split('as')[1].split('-')[0].isnumeric():
                 continue
             else:
-                mnt_dict[key].add('AS' + key.lower().split('as')[1].split('-')[0])
-        for value in mnt_dict[key]:
-            for sibling in mnt_dict[key]:
-                if value == sibling: continue
-                if (value, sibling) not in siblingDict.keys():
-                    siblingDict[(value, sibling)] = ["S2S", '%s=%s' % (field, key)]
-                else:
-                    siblingDict[(value, sibling)][1] += ', %s=%s' % (field, key)
+                new_mnt_dict[key] = new_mnt_dict.get(key, set())
+                new_mnt_dict[key].add('AS' + key.lower().split('as')[1].split('-')[0])
+            new_mnt_dict[key] = new_mnt_dict.get(key, set())
+            new_mnt_dict[key].update(mnt_dict[key])
+    return new_mnt_dict
+        # for AS in mnt_dict[key]:
+        #     AS_Siblings[AS] = AS_Siblings.get(AS, dict())
+        #     siblings_list = mnt_dict[key].copy()
+        #     siblings_list.remove(AS)
+        #     AS_Siblings[AS][f"{field}={key}"] = siblings_list
 
 
 def block_list_analysis(block_list):
@@ -114,33 +121,61 @@ def block_list_analysis(block_list):
         field_analysis(block, notifyDict, 'notify:', key)
 
 
-def sibling_insertion(source_dict, field, forbidden_list=[], max_len=None):
-    global siblingDict
+def sibling_insertion(source_dict, field, forbidden_list={'dum'}, max_len=10**9):
+    global AS_Siblings
     for key in source_dict.keys():
-        if len(source_dict[key]) < 2 or 'dum' in key.lower() or key.lower() in forbidden_list\
-                or (max_len is not None and max_len < len(source_dict[key])):
+        if len(source_dict[key]) < 2 or max_len < len(source_dict[key])\
+                or any([word in key.lower() for word in forbidden_list]):
             continue
-        for value in source_dict[key]:
-            for sibling in source_dict[key]:
-                if value == sibling: continue
-                if (value, sibling) not in siblingDict.keys():
-                    siblingDict[(value, sibling)] = ["S2S", '%s=%s' % (field, key)]
-                else:
-                    siblingDict[(value, sibling)][1] += ', %s=%s' % (field, key)
+        for AS in source_dict[key]:
+            AS_Siblings[AS] = AS_Siblings.get(AS, dict())
+            siblings_list = source_dict[key].copy()
+            siblings_list.remove(AS)
+            AS_Siblings[AS][f"{field}={key}"] = siblings_list
 
 
-def plot_dict_hist(dic, graphtitle, xlabel='len of list', ylabel='# of list with len x'):
-    y = [len(val) for val in dic.values() if len(val) < 11]
-    # x = list(set(y))
-    # x = [xi for xi in x if xi < 11]
-    # y = [y.count(xi) for xi in x]
-    # print(Counter(y))
-    # plt.scatter(x, y)
-    plt.hist(y)
+def plot_dict_hist(dic, graphtitle, xlabel='len of list', ylabel='# of list with len x', max_len=11, CDF=False, norm=False):
+    y = [len(val) for val in dic.values() if 1 < len(val) < max_len]
+    plt.hist(y, bins=list(range(max_len + 1)), cumulative=CDF, range=(1, max_len), align='left', density=norm)
+    Count_y = Counter(y)
+    keys = list(Count_y.keys())
+    keys.sort()
+    summary = sum([y.count(xj) for xj in keys])
+    if norm:
+        for xi in keys:
+            Count_y[xi] /= summary
+    if CDF:
+        for xi in keys:
+            Count_y[xi] += Count_y.get(xi - 1, 0)
+    x, y = zip(*Count_y.items())
+    plt.scatter(x, y)
+    for xi, yi in zip(x, y):
+        label = f"({xi}, {round(yi, 2)})"
+        plt.annotate(label,
+                     (xi, yi),
+                     textcoords="offset points",
+                     xytext=(20, 3),
+                     ha='center',
+                     )
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
-    plt.suptitle(graphtitle)
-    plt.show()
+    title = graphtitle
+    title += ' Normalized' if norm else ''
+    title += ' CDF' if CDF else ''
+    plt.suptitle(title)
+    plt.savefig(f"./../../Example Files/Plots/Siblings/{title}.png", dpi=300)
+    plt.close()
+
+
+def concat_siblings():
+    global siblingDict
+    for AS, sibling_indicator in AS_Siblings.items():
+        sibling_set = set()
+        sibling_set.update(*sibling_indicator.values())
+        for sibling in sibling_set:
+            comment = [indicator for indicator in sibling_indicator.keys() if sibling in sibling_indicator[indicator]]
+            comment = ', '.join(comment)
+            siblingDict[(AS, sibling)] = ('S2S', comment)
 
 
 for i in range(1, 62):
@@ -155,34 +190,57 @@ for i in range(1, 62):
             date = dateDict.get(set_name, 0)
             if date != 0 and str(date) not in block and\
                 str(date)[:4] + '-' + str(date)[4:6] + '-' + str(date)[6:] not in block: continue
-            field_analysis(block, sets_siblings, 'mnt-by:', memDict.get(set_name, []), is_sets=True)
+            if set_name not in memDict: continue
+            field_analysis(block, sets_siblings, 'mnt-by:', memDict[set_name], is_sets=True)
+
+MNT_AS_Dict = mnt_sibling_insertion(MNTDict)
+sets_AS_Dict = mnt_sibling_insertion(sets_siblings)
+
+dicts = (MailDict, OrgDict, MNTDict, AdminDict, techDict, notifyDict)
+fields = ('domain', 'org', 'mnt-by', 'admin', 'tech', 'notify')
+titles = ('MailDict', 'OrgDict', 'MNTDict', 'AdminDict', 'techDict', 'notifyDict', 'NamesDict', 'MNTDict by AS', 'Sets Siblings')
+
+for field_dict, title in zip(dicts + (NamesDict, MNT_AS_Dict, sets_AS_Dict), titles):
+    for i in range(4):
+        plot_dict_hist(field_dict, title, CDF=bool(i & 1), norm=bool(i & 2))
 
 
-sibling_insertion(MailDict, 'domain')#, max_len=5)
-sibling_insertion(OrgDict, 'org')#, max_len=5)
-sibling_insertion(MNTDict, 'mnt-by', max_len=50)
-sibling_insertion(AdminDict, 'admin')#, max_len=5)
-sibling_insertion(techDict, 'tech')#, max_len=5)
-sibling_insertion(notifyDict, 'notify')#, max_len=5)
+for field_dict, field in zip(dicts, fields):
+    sibling_insertion(field_dict, field, max_len=5)
 
-mnt_sibling_insertion(MNTDict, 'mnt-by')
-mnt_sibling_insertion(sets_siblings, 'mnt-sets')
+sibling_insertion(NamesDict, 'name')
+sibling_insertion(MNT_AS_Dict, 'mnt-by-as')
+sibling_insertion(sets_AS_Dict, 'set_mnt-by-as', max_len=1000)
 
-# plot_dict_hist(MailDict, 'MailDict')
-# plot_dict_hist(OrgDict, 'OrgDict')
-# plot_dict_hist(MNTDict, 'MNTDict')
-# plot_dict_hist(AdminDict, 'AdminDict')
-# plot_dict_hist(techDict, 'techDict')
-# plot_dict_hist(notifyDict, 'notifyDict')
 
+concat_siblings()
+
+
+# keys = set(siblingDict.keys())
+# percent = [int(i * len(keys) / 100) for i in range(101)]
+# percent_set = set(percent)
+#
+# ToR_count = 0
+# for ToR in keys:
+#     ToR_count += 1
+#     if ToR_count in percent_set:
+#         print(f"{percent.index(ToR_count)}%")
+#     AS = ToR[1]
+#     siblings = set().union(*AS_Siblings[AS].values())
+#     for sibling1 in siblings:
+#         for sibling2 in siblings:
+#             if AS == sibling1 or AS == sibling2: continue
+#             assert (sibling1, AS) in keys
+#             assert (AS, sibling2) in keys
+
+# print(siblingDict)
 
 with open("./../../Pickles/SiblingsDict.pickle", "wb") as p:
     pickle.dump(siblingDict, p)
 
 
-with open("./../../Example Files/Siblings Without Limit.csv", mode='w', newline='') as f:
+with open("./../../Example Files/Siblings Threshold=5.csv", mode='w', newline='') as f:
     writer = csv.writer(f, dialect='excel')
     writer.writerow(['AS1', 'AS2', 'ToR', 'Heuristic'])
     for k in siblingDict.keys():
         writer.writerow([k[0][2:], k[1][2:], siblingDict[k][0], siblingDict[k][1]])
-

@@ -9,7 +9,7 @@ delim = "mntner:|descr:|admin-c:|tech-c:|upd-to:|auth:|mnt-by:|changed:|source:|
 
 
 def extract_key(AS):
-    key = "AS" + (AS.lower().split("as")[1]).split("\n")[0]
+    key = "AS" + (AS.lower().split("as")[1]).split("\n")[0].strip()
     if '#' in key:
         key = key.split('#')[0]
     return key
@@ -91,8 +91,6 @@ def add_entry(block, AS1, tor, is_export=False):
             source = [source] if source[:2].lower() == 'as' and source[2:].isnumeric() else MemDict[source]
             for AS2 in source:
                 AS2 = AS2.upper()
-                if (AS1, AS2) == ('AS6724', 'AS8859'):
-                    breakpoint()
                 if (AS1, AS2) in IRR.keys() and IRR[(AS1, AS2)] != tor:
                     continue
                     if tor == 'P2C' or IRR[(AS1, AS2)] == 'P2C':
@@ -138,8 +136,6 @@ for header, block, AS in remark_blocks:
         current_remark = ""
     currentAS = AS
     header = create_header(header.lower())
-    if "peerings at DE-CIX Frankfurt:".lower() in header:
-        breakpoint()
     current_remark = "" if "peer" in header else current_remark
     current_remark = "provider" if any(word in header for word in provider) else current_remark
     TruthDict[currentAS][0] = True if any(word in header for word in provider) else TruthDict[currentAS][0]
@@ -167,7 +163,7 @@ for header, block, AS in remark_blocks:
     if 'ipv6' in header.lower(): continue
     if not current_remark: continue
     add_entry(block, AS.upper(), 'P2P')
-    add_entry(block, AS.upper(), tor, is_export=True)
+    add_entry(block, AS.upper(), 'P2P', is_export=True)
 
 print(IRR)
 print("P2P Value is:", list(IRR.values()).count("P2P"))

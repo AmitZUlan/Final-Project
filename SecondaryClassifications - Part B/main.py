@@ -15,38 +15,33 @@ customers = ["customer", "custs", "downstream", "client", "downlink"]
 providers = ["provider", "upstream", "uplink", "backbone"]
 
 
-def swap(NamesDict, SetsDict, name, MemDict, namelist):
-    retval = list()
+def decipher_name(name, namelist):
+    global MemDict, SetsDict, NamesDict
+    retval = set()
     if name in MemDict.keys():
         return MemDict[name]
-    if name.startswith("AS") and name[2:].isnumeric():
-        retval.append(name)
+    if name.startswith("AS") and name[2:].strip().isnumeric():
+        retval.add(name.strip())
         MemDict[name] = retval
         return retval
     if name in namelist:
-        return []
+        assert retval == set()
+        return retval
     if name in NamesDict.keys():
-        retval.append(NamesDict[name])
-    elif name in SetsDict.keys():
-        for v in SetsDict[name]:
-            if v != name:
-                namelist.append(name)
-                newretval = swap(NamesDict, SetsDict, v, MemDict, namelist)
-                namelist.remove(name)
-                retval = list(set(retval + newretval))
-            else:
-                SetsDict[name].remove(name)
-    elif name.startswith("AS") and name[2] == '-' and name[3:].isnumeric():
-        retval.append(name[:2] + name[3:])
+        retval.update(NamesDict[name])
+    elif name.lower().startswith("as-") and name[3:].strip().isnumeric():
+        retval.add('AS' + name[3:].strip())
         MemDict[name] = retval
         return retval
-    else:
-        for key, v in NamesDict.items():
-            if ':' not in name and (len(name) > 2 and name in key or (name.startswith("AS") and name[2:] in key and name.lower()[2:] not in "as" and name.lower()[2:] not in "asn" and len(name) > 4) or (name.startswith("AS-") and name[3:] in key and name.lower()[3:] not in "as" and name.lower()[3:] not in "asn" and len(name) > 5)):
-                retval.append(v)
-            MemDict[name] = retval
-            return retval
-        retval.append(name)
+    elif SetsDict.get(name, set()) != set():
+        for AS in SetsDict[name]:
+            if AS != name:
+                namelist.add(name)
+                newretval = decipher_name(AS, namelist)
+                namelist.remove(name)
+                retval.update(newretval)
+            else:
+                SetsDict[name].remove(name)
     MemDict[name] = retval
     return retval
 
@@ -55,7 +50,7 @@ for name in SetsDict.keys():
     b1 = False
     b2 = False
     b3 = False
-    AS2list = swap(NamesDict, SetsDict, name, MemDict, [])
+    AS2list = decipher_name(name, set())
     if ':' in name:
         if "peer" in name.lower():
             b1 = True
@@ -70,7 +65,7 @@ for name in SetsDict.keys():
                 b3 = True
                 break
         AS1list = name.split(':')[0]
-        AS1list = swap(NamesDict, SetsDict, AS1list, MemDict, [])
+        AS1list = decipher_name(AS1list, set())
         if not AS1list:
             continue
         else:
@@ -95,7 +90,7 @@ for name in SetsDict.keys():
                             continue
     if '-backbone' in name.lower():
         AS1list = name[:name.lower().find("-backbone")]
-        AS1list = swap(NamesDict, SetsDict, AS1list, MemDict, [])
+        AS1list = decipher_name(AS1list, set())
         if not AS1list: continue
         for AS1 in AS1list:
             for AS2 in AS2list:
@@ -105,6 +100,10 @@ for name in SetsDict.keys():
                     continue
                 IRR[key] = "C2P"
 
+
+print("P2P Value is:", list(IRR.values()).count("P2P"))
+print("P2C Value is:", list(IRR.values()).count("P2C"))
+print("C2P Value is:", list(IRR.values()).count("C2P"))
 
 with open("./../../Pickles/IRRv3.pickle", "wb") as p:
     pickle.dump(IRR, p)

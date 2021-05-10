@@ -146,11 +146,11 @@ def log_IRR(IRR, msg):
     log = open(f'./../../Example Files/Logs/%s {msg[:-1]}.txt' % datetime.now().strftime('%d.%m.%y %H;%M;%S'), 'w')
     LOG(log, msg + '\n')
     mistakes, classifications_2_sided, classifications = IRR_analysis(IRR, log)
-    with open(f'./../../Pickles/{msg[:-1]} Mistakes.pickle', 'wb') as p:
+    with open(f'./../../Pickles/Mistakes/{msg[:-1]} Mistakes.pickle', 'wb') as p:
         pickle.dump(mistakes, p)
-    with open(f'./../../Pickles/{msg[:-1]} Classifications 2-Sided.pickle', 'wb') as p:
+    with open(f'./../../Pickles/Classifications/{msg[:-1]} Classifications 2-Sided.pickle', 'wb') as p:
         pickle.dump(classifications_2_sided, p)
-    with open(f'./../../Pickles/{msg[:-1]} Classifications.pickle', 'wb') as p:
+    with open(f'./../../Pickles/Classifications/{msg[:-1]} Classifications.pickle', 'wb') as p:
         pickle.dump(classifications, p)
     LOG(log, '\n')
     print(f'{msg[:-1]} Process Finished.')
@@ -175,18 +175,5 @@ if __name__ == '__main__':
     for process in processes:
         process.join()
 
-
-# with open("./../../../Example Files/RefCompare.csv", mode='w', newline='') as f:
-#     fwrite = csv.writer(f, delimiter=',')
-#     fwrite.writerow(['AS1', 'AS2', 'IRR Prediction', 'Caida Prediction'])
-#     for k in Ref.keys():
-#         if k in IRR.keys():
-#             w = [k[0][2:], k[1][2:], IRR[k], Ref[k], ' ']
-#         else:
-#             w = [k[0][2:], k[1][2:], "Doesn't Exist", Ref[k], ' ']
-#         fwrite.writerow(w)
-#     for k in (list(set(list(Ref.keys()) + list(IRR.keys())) - set(Ref.keys()))):
-#         w = [k[0][2:], k[1][2:], IRR[k], "Doesn't Exist", ' ']
-#         fwrite.writerow(w)
 
 

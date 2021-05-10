@@ -15,6 +15,7 @@ with open("./../../Pickles/IRRv3.pickle", "rb") as p:
 
 IRR = dict()
 IRR_class_only = dict()
+dict_list = (IRR1, IRR2, IRR3)
 
 
 def class_calc(class_list, _class):
@@ -40,14 +41,13 @@ def conf_calc(class_list):
         return 'C2P', num_of_3s / 13
 
 
-def variable_extraction(AS1, AS2, dict_list):
-    key = (AS1, AS2)
-    revkey = (AS2, AS1)
+def variable_extraction(key, dict_list):
+    revkey = key[::-1]
     class_list = list()
     for i in range(3):
         class_list.append(element_extraction(key, dict_list[i]))
         class_list.append(rev_class[element_extraction(revkey, dict_list[i])])
-    return class_list
+    return tuple(class_list)
 
 
 def element_extraction(key, dict):
@@ -74,33 +74,39 @@ count60 = 0
 count50 = 0
 count00 = 0
 
-dict_list = [IRR1, IRR2, IRR3]
-y = [variable_extraction(AS1, AS2, dict_list) for AS1, AS2 in list(set(list(IRR1.keys()) + list(IRR2.keys()) + list(IRR3.keys())))]
-y = [6 - i.count(0) for i in y]
-y = [y.count(i) for i in range(7)]
-x = range(7)
-plt.scatter(x, y)
-plt.xlabel('# of Classifications')
-plt.ylabel('# of ToRs with x Classifications')
-for xi, yi in zip(x, y):
-    label = f"({xi}, {yi})"
-    plt.annotate(label,
-                 (xi, yi),
-                 textcoords="offset points",
-                 xytext=(0, 10),
-                 ha='center')
-plt.show()
 
+# y = [variable_extraction(AS1, AS2, dict_list) for AS1, AS2 in set().union(IRR1.keys(), IRR2.keys(), IRR3.keys())]
+# y = [6 - i.count(0) for i in y]
+# y = [y.count(i) for i in range(7)]
+# x = range(7)
+# plt.scatter(x, y)
+# plt.xlabel('# of Classifications')
+# plt.ylabel('# of ToRs with x Classifications')
+# for xi, yi in zip(x, y):
+#     label = f"({xi}, {yi})"
+#     plt.annotate(label,
+#                  (xi, yi),
+#                  textcoords="offset points",
+#                  xytext=(0, 10),
+#                  ha='center')
+# plt.show()
 
-for key in list(set(list(IRR1.keys()) + list(IRR2.keys()) + list(IRR3.keys()))):
-    class_list = variable_extraction(key[0], key[1], [IRR1, IRR2, IRR3])  # [1, 1, 0, 0, 0, 0]
-    value = list(conf_calc(class_list))
-    IRR[key] = value + [class_list]
+ToR_count = 0
+percent = list(int(i * len(set().union(IRR1.keys(), IRR2.keys(), IRR3.keys()))/20) for i in range(1, 21))
+percent.append(1)
+percent.sort()
+percent_set = set(percent)
+for key in set().union(IRR1.keys(), IRR2.keys(), IRR3.keys()):
+    ToR_count += 1
+    if ToR_count in percent_set:
+        print(f"{percent.index(ToR_count) * 5}%")
+    class_list = variable_extraction(key, dict_list)  # [1, 1, 0, 0, 0, 0]
+    value = tuple(conf_calc(class_list))
+    IRR[key] = value + (class_list,)
     IRR_class_only[key] = value[0]
     if class_list.count(0) == 0:
         count0 += 1
-        variable_extraction(key[0], key[1], [IRR1, IRR2, IRR3])
-        list(conf_calc(class_list))
+        variable_extraction(key, dict_list)
         print(key, IRR[key])
     if class_list.count(0) == 1:
         count1 += 1
@@ -140,8 +146,7 @@ with open("./../../Example Files/IRR.csv", mode='w', newline='') as f:
                      'Remarks[AS1, AS2]', 'Remarks[AS2, AS1]', 'Sets[AS1, AS2]',
                      'Sets[AS2, AS1]', 'ToR', 'Confidence'])
     for k in IRR.keys():
-        w = [k[0][2:], k[1][2:]] + IRR[k][2] + [IRR[k][0], IRR[k][1], ' ']
-        fwrite.writerow(w)
+        fwrite.writerow([k[0][2:], k[1][2:], *IRR[k][2], IRR[k][0], IRR[k][1]])
 
 
 
