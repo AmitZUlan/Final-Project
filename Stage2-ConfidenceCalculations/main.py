@@ -1,52 +1,53 @@
 import pickle
 import time
 import csv
-from matplotlib import pyplot as plt
 
 st = time.time()
-rev_class = {0: 0, 1: 1, 2: 3, 3: 2}
+IRR = dict()
+IRR_class_only = dict()
+dict_list = list()
+mistakes_list = list()
+classifications_list = list()
+num_to_class = {
+    1: 'P2P',
+    2: 'P2C',
+    3: 'C2P',
+}
 
 with open("./../../Pickles/IRR.pickle", "rb") as p:
     IRR1 = pickle.load(p)
+    dict_list.append(IRR1)
 with open("./../../Pickles/IRRv2.pickle", "rb") as p:
     IRR2 = pickle.load(p)
+    dict_list.append(IRR2)
 with open("./../../Pickles/IRRv3.pickle", "rb") as p:
     IRR3 = pickle.load(p)
+    dict_list.append(IRR3)
 
-IRR = dict()
-IRR_class_only = dict()
-dict_list = (IRR1, IRR2, IRR3)
-
-
-def class_calc(class_list, _class):
-    number = class_list[0:2].count(_class) + 0.5 * class_list[0:2].count(0)\
-             + 2 * class_list[2:].count(_class) + class_list[2:].count(0)
-    for i in range(3):
-        if class_list[i] == _class and class_list[i + 1] == _class:
-            number += 1
-    return number
+for arg in ['Sets Dictionary', 'Remarks Dictionary', 'I_E Dictionary']:
+    with open(f'./../../Pickles/Mistakes/{arg} Mistakes.pickle', 'rb') as p:  # (AS1, AS2)
+        mistakes = pickle.load(p)
+        mistakes_list.append(mistakes)
+    with open(f'./../../Pickles/Classifications/{arg} Classifications 2-Sided.pickle', 'rb') as p:
+        classifications_2_sided = pickle.load(p)
+        classifications_list.append(classifications_2_sided)
 
 
-def conf_calc(class_list):
-    if class_list == [0, 0, 0, 0, 0, 0]:
-        return "Unknown", 0
-    num_of_1s = class_calc(class_list, 1)
-    num_of_2s = class_calc(class_list, 2)
-    num_of_3s = class_calc(class_list, 3)
-    if num_of_1s > num_of_2s and num_of_1s > num_of_3s:
-        return 'P2P', num_of_1s / 13
-    elif num_of_2s > num_of_1s and num_of_2s > num_of_3s:
-        return 'P2C', num_of_2s / 13
-    else:
-        return 'C2P', num_of_3s / 13
+def is_match(key):
+    global dict_list
+    if dict_list[0].get(key, 'Unknown0') == dict_list[1].get(key, 'Unknown1'):
+        return dict_list[0][key]
+    if dict_list[1].get(key, 'Unknown1') == dict_list[2].get(key, 'Unknown2'):
+        return dict_list[1][key]
+    if dict_list[0].get(key, 'Unknown0') == dict_list[2].get(key, 'Unknown2'):
+        return dict_list[2][key]
+    return 'Unknown'
 
 
 def variable_extraction(key, dict_list):
-    revkey = key[::-1]
     class_list = list()
     for i in range(3):
         class_list.append(element_extraction(key, dict_list[i]))
-        class_list.append(rev_class[element_extraction(revkey, dict_list[i])])
     return tuple(class_list)
 
 
@@ -64,6 +65,36 @@ def element_extraction(key, dict):
             return 0
 
 
+def in_dict(dict_set, key):
+    for dic in dict_set:
+        if dic.get(key, 'Unknown') != 'Unknown':
+            return False
+    return True
+
+
+def conf_calc(key, class_list):
+    global mistakes_list, classifications_list
+    if class_list == (0, 0, 0):
+        return 'Unknown', 0
+    ToR = is_match(key)
+    if ToR != 'Unknown':
+        return ToR, 1
+    AS = key[0]
+    confidence1 = 1 - len(mistakes_list[0].get(AS, {1})) / len(classifications_list[0].get(AS, {1})) if class_list[0] else 0
+    confidence2 = 1 - len(mistakes_list[1].get(AS, {1})) / len(classifications_list[1].get(AS, {1})) if class_list[1] else 0
+    confidence3 = 1 - len(mistakes_list[2].get(AS, {1})) / len(classifications_list[2].get(AS, {1})) if class_list[2] else 0
+    assertion = confidence1 != 0 or confidence2 != 0 or confidence3 != 0
+    if not assertion:
+        for val in class_list:
+            if val != 0:
+                return num_to_class[val], 0
+    conf_dict = dict()
+    conf_dict[confidence1] = IRR1.get(key, 'Unknown')
+    conf_dict[confidence2] = IRR2.get(key, 'Unknown')
+    conf_dict[confidence3] = IRR3.get(key, 'Unknown')
+    return conf_dict[max(confidence1, confidence2, confidence3)], max(confidence1, confidence2, confidence3)
+
+
 count0 = 0
 count1 = 0
 count2 = 0
@@ -75,22 +106,6 @@ count50 = 0
 count00 = 0
 
 
-# y = [variable_extraction(AS1, AS2, dict_list) for AS1, AS2 in set().union(IRR1.keys(), IRR2.keys(), IRR3.keys())]
-# y = [6 - i.count(0) for i in y]
-# y = [y.count(i) for i in range(7)]
-# x = range(7)
-# plt.scatter(x, y)
-# plt.xlabel('# of Classifications')
-# plt.ylabel('# of ToRs with x Classifications')
-# for xi, yi in zip(x, y):
-#     label = f"({xi}, {yi})"
-#     plt.annotate(label,
-#                  (xi, yi),
-#                  textcoords="offset points",
-#                  xytext=(0, 10),
-#                  ha='center')
-# plt.show()
-
 ToR_count = 0
 percent = list(int(i * len(set().union(IRR1.keys(), IRR2.keys(), IRR3.keys()))/20) for i in range(1, 21))
 percent.append(1)
@@ -100,9 +115,9 @@ for key in set().union(IRR1.keys(), IRR2.keys(), IRR3.keys()):
     ToR_count += 1
     if ToR_count in percent_set:
         print(f"{percent.index(ToR_count) * 5}%")
-    class_list = variable_extraction(key, dict_list)  # [1, 1, 0, 0, 0, 0]
-    value = tuple(conf_calc(class_list))
-    IRR[key] = value + (class_list,)
+    class_list = variable_extraction(key, dict_list)
+    value = conf_calc(key, class_list)
+    IRR[key] = value
     IRR_class_only[key] = value[0]
     if class_list.count(0) == 0:
         count0 += 1
@@ -142,11 +157,9 @@ with open("./../../Pickles/IRR_Confidence_class_only.pickle", "wb") as p:
 
 with open("./../../Example Files/IRR.csv", mode='w', newline='') as f:
     fwrite = csv.writer(f, delimiter=',')
-    fwrite.writerow(['AS1', 'AS2', 'Imp/Exp[AS1, AS2]', 'Imp/Exp[AS2, AS1]',
-                     'Remarks[AS1, AS2]', 'Remarks[AS2, AS1]', 'Sets[AS1, AS2]',
-                     'Sets[AS2, AS1]', 'ToR', 'Confidence'])
+    fwrite.writerow(['AS1', 'AS2', 'ToR', 'Confidence'])
     for k in IRR.keys():
-        fwrite.writerow([k[0][2:], k[1][2:], *IRR[k][2], IRR[k][0], IRR[k][1]])
+        fwrite.writerow([k[0][2:], k[1][2:], IRR[k][0], IRR[k][1]])
 
 
 

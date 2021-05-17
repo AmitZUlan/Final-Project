@@ -91,38 +91,18 @@ if __name__ == '__main__':
 
     processes = list()
 
-    # for arg in args_list:
-    #     with open(f'./../../Pickles/Mistakes/{arg[1][:-1]} Mistakes.pickle', 'rb') as p:
-    #         mistakes = pickle.load(p)
-    #     with open(f'./../../Pickles/Classifications/{arg[1][:-1]} Classifications 2-Sided.pickle', 'rb') as p:
-    #         classifications_2_sided = pickle.load(p)
-    #     with open(f'./../../Pickles/Classifications/{arg[1][:-1]} Classifications.pickle', 'rb') as p:
-    #         classifications = pickle.load(p)
-    #
-    #     count = 0
-    #     for threshold in range(101):
-    #         args = (arg[0], arg[1], mistakes, classifications_2_sided, classifications, threshold)
-    #         p = mp.Process(target=check_mistakes, args=args)
-    #         processes.append(p)
-    #         p.start()
-    #         count += 1
-    #
-    #         if count > 14:
-    #             processes[0].join()
-    #             count -= 1
-    #             processes.remove(processes[0])
-    #     if count != 0:
-    #         for process in processes:
-    #             process.join()
-
-    for arg in args_list[1:]:
-        with open("./../../Pickles/DateDict.pickle", "rb") as p:
-            DateDict = pickle.load(p)
+    for arg in args_list:
+        with open(f'./../../Pickles/Mistakes/{arg[1][:-1]} Mistakes.pickle', 'rb') as p:
+            mistakes = pickle.load(p)
+        with open(f'./../../Pickles/Classifications/{arg[1][:-1]} Classifications 2-Sided.pickle', 'rb') as p:
+            classifications_2_sided = pickle.load(p)
+        with open(f'./../../Pickles/Classifications/{arg[1][:-1]} Classifications.pickle', 'rb') as p:
+            classifications = pickle.load(p)
 
         count = 0
-        for date_threshold in range(2020 * 10 ** 4, 1950 * 10 ** 4, -10 ** 4):
-            args = (arg[0], arg[1], DateDict, date_threshold)
-            p = mp.Process(target=check_date, args=args)
+        for threshold in range(101):
+            args = (arg[0], arg[1], mistakes, classifications_2_sided, classifications, threshold)
+            p = mp.Process(target=check_mistakes, args=args)
             processes.append(p)
             p.start()
             count += 1
@@ -134,4 +114,5 @@ if __name__ == '__main__':
         if count != 0:
             for process in processes:
                 process.join()
+
 

@@ -117,8 +117,9 @@ def IRR_analysis(given_IRR, log):
 
     # print(str(round(float(P2P[0])/(P2P[0] + P2P[1] + P2P[2]) * 100, 2)) + "%")
     padding = 12
-    LOG(log, '\tP2C matching rate (relative to CAIDA) is %s\n' % (str(round(float(P2C[1]) / (P2C[1] + P2C[2]) * 100, 2)) + "%"))
-    LOG(log, '\tC2P matching rate (relative to CAIDA) is %s\n' % (str(round(float(C2P[2]) / (C2P[1] + C2P[2]) * 100, 2)) + "%"))
+    LOG(log, '\tP2P matching rate (relative to CAIDA) is %s\n' % (str(round(float(P2P[0]) / (sum(P2P)) * 100, 2)) + "%"))
+    LOG(log, '\tP2C matching rate (relative to CAIDA) is %s\n' % (str(round(float(P2C[1]) / (sum(P2C)) * 100, 2)) + "%"))
+    LOG(log, '\tC2P matching rate (relative to CAIDA) is %s\n' % (str(round(float(C2P[2]) / (sum(C2P)) * 100, 2)) + "%"))
     LOG(log, '\tConfusion matrix is:               %s, %s, %s\n'
         % ('IRR P2P'.ljust(padding), 'IRR P2C'.ljust(12), 'IRR C2P'.ljust(padding)))
     LOG(log, '\t' + ' ' * len('Confusion matrix is:\t') + '%s, %s, %s, %s\n' % ('CAIDA P2P'.rjust(padding),

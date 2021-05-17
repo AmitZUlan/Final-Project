@@ -132,14 +132,14 @@ def policy_analysis(policy):
 
 
 def extract_name(block, AS):
-    global ASNames, count
-    if "as-name:" in block:
-        name = block.split("as-name:")[1].split("\n")[0].strip()
-        if '#' in name:
-            name = name.split('#')[0]
-        if name.lower() != "unspecified":
-            ASNames[name] = ASNames.get(name, set())
-            ASNames[name].add(AS)
+    global ASNames
+    if "as-name:" not in block: return
+    name = block.split("as-name:")[1].split("\n")[0].strip()
+    if '#' in name:
+        name = name.split('#')[0]
+    if name.lower() == "unspecified": return
+    ASNames[name] = ASNames.get(name, set())
+    ASNames[name].add(AS)
 
 
 for i in range(1, 62):

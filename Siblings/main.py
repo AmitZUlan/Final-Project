@@ -210,28 +210,28 @@ for field_dict, field in zip(dicts, fields):
 
 sibling_insertion(NamesDict, 'name')
 sibling_insertion(MNT_AS_Dict, 'mnt-by-as')
-sibling_insertion(sets_AS_Dict, 'set_mnt-by-as', max_len=1000)
+sibling_insertion(sets_AS_Dict, 'set_mnt-by-as', max_len=1000)  # AS1, AS2 S2S  AS2, AS3 S2S
 
 
 concat_siblings()
 
 
-# keys = set(siblingDict.keys())
-# percent = [int(i * len(keys) / 100) for i in range(101)]
-# percent_set = set(percent)
-#
-# ToR_count = 0
-# for ToR in keys:
-#     ToR_count += 1
-#     if ToR_count in percent_set:
-#         print(f"{percent.index(ToR_count)}%")
-#     AS = ToR[1]
-#     siblings = set().union(*AS_Siblings[AS].values())
-#     for sibling1 in siblings:
-#         for sibling2 in siblings:
-#             if AS == sibling1 or AS == sibling2: continue
-#             assert (sibling1, AS) in keys
-#             assert (AS, sibling2) in keys
+keys = set(siblingDict.keys())
+percent = [int(i * len(keys) / 100) for i in range(101)]
+percent_set = set(percent)
+
+ToR_count = 0
+for ToR in keys:
+    ToR_count += 1
+    if ToR_count in percent_set:
+        print(f"{percent.index(ToR_count)}%")
+    AS = ToR[1]
+    siblings = set().union(*AS_Siblings[AS].values())
+    for sibling1 in siblings:
+        for sibling2 in siblings:
+            if AS == sibling1 or AS == sibling2: continue
+            assert (sibling1, AS) in keys
+            assert (AS, sibling2) in keys
 
 # print(siblingDict)
 
