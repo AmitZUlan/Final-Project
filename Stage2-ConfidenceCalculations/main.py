@@ -119,6 +119,10 @@ for key in set().union(IRR1.keys(), IRR2.keys(), IRR3.keys()):
     value = conf_calc(key, class_list)
     IRR[key] = value
     IRR_class_only[key] = value[0]
+    if value[0] != 'Unknown':
+        if key[::-1] not in IRR or IRR[key[::-1]][1] < value[1]:
+            IRR[key[::-1]] = (value[0][::-1], value[1])
+            IRR_class_only[key[::-1]] = value[0][::-1]
     if class_list.count(0) == 0:
         count0 += 1
         variable_extraction(key, dict_list)

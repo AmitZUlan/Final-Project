@@ -140,6 +140,8 @@ def extract_name(block, AS):
     if name.lower() == "unspecified": return
     ASNames[name] = ASNames.get(name, set())
     ASNames[name].add(AS)
+    if name.lower() == 'microsoft':
+        breakpoint()
 
 
 for i in range(1, 62):

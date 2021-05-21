@@ -3,6 +3,7 @@ import time
 
 st = time.time()
 IRR = dict()
+relevant_sets = dict()
 
 with open("./../../Pickles/Mem.pickle", "rb") as p:
     MemDict = pickle.load(p)
@@ -81,12 +82,18 @@ for name in SetsDict.keys():
                             continue
                         if b1 and not b2 and not b3:
                             IRR[key] = "P2P"
+                            relevant_sets[name] = relevant_sets.get(name, dict())
+                            relevant_sets[name][key] = "P2P"
                             continue
                         if not b1 and b2 and not b3:
                             IRR[key] = "C2P"
+                            relevant_sets[name] = relevant_sets.get(name, dict())
+                            relevant_sets[name][key] = "C2P"
                             continue
                         if not b1 and not b2 and b3:
                             IRR[key] = "P2C"
+                            relevant_sets[name] = relevant_sets.get(name, dict())
+                            relevant_sets[name][key] = "P2C"
                             continue
     if '-backbone' in name.lower():
         AS1list = name[:name.lower().find("-backbone")]
@@ -99,6 +106,8 @@ for name in SetsDict.keys():
                 if AS1 in AS2list and AS2 in AS1list:
                     continue
                 IRR[key] = "C2P"
+                relevant_sets[name] = relevant_sets.get(name, dict())
+                relevant_sets[name][key] = "C2P"
 
 
 print("P2P Value is:", list(IRR.values()).count("P2P"))
@@ -107,5 +116,7 @@ print("C2P Value is:", list(IRR.values()).count("C2P"))
 
 with open("./../../Pickles/IRRv3.pickle", "wb") as p:
     pickle.dump(IRR, p)
+with open("./../../Pickles/Sets Relevant to Sets Heuristic.pickle", "wb") as p:
+    pickle.dump(relevant_sets, p)
 with open("./../../Pickles/Mem.pickle", "wb") as p:
     pickle.dump(MemDict, p)

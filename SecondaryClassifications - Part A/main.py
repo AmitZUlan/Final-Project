@@ -73,15 +73,15 @@ def create_header(initial_header):
         current_remark = ""
     if ".com" in header:
         header = header.split(".com")[-1]
-    while "peeringdb.com" in header:
-        header.replace("peeringdb", "")
+    while "peeringdb" in header:
+        header = header.replace("peeringdb", "")
     while "peer-group:" in header:
-        header.replace("peer-group:", "")
+        header = header.replace("peer-group:", "")
     return header
 
 
 def add_entry(block, AS1, tor, is_export=False):
-    global IRR, MemDict
+    global IRR, MemDict, relevant_remarks, current_header
     delim_remove = 'export:' if is_export else 'import:'
     source_delim = 'to ' if is_export else 'from '
     for rem in (re.split(delim.replace("|" + delim_remove, ''), block.lower())):
@@ -93,14 +93,9 @@ def add_entry(block, AS1, tor, is_export=False):
                 AS2 = AS2.upper()
                 if (AS1, AS2) in IRR.keys() and IRR[(AS1, AS2)] != tor:
                     continue
-                    if tor == 'P2C' or IRR[(AS1, AS2)] == 'P2C':
-                        IRR[(AS1, AS2)] = 'P2C'
-                    elif tor == 'C2P' or IRR[(AS1, AS2)] == 'C2P':
-                        IRR[(AS1, AS2)] = 'C2P'
-                    else:
-                        IRR[(AS1, AS2)] = 'P2P'
-                    continue
                 IRR[(AS1, AS2)] = tor
+                relevant_remarks[current_header] = relevant_remarks.get(current_header, dict())
+                relevant_remarks[current_header][(AS1, AS2)] = tor
 
 
 with open("./../../Pickles/Mem.pickle", "rb") as p:
@@ -112,6 +107,7 @@ customer = ["customer", "client", "downstream", "downlink"]
 provider = ["provider", "upstream", "uplink"]
 TruthDict = dict()
 IRR = dict()
+relevant_remarks = dict()
 
 for i in range(1, 62):
     with codecs.open(f"./../../Sources/{i}.db", encoding='ISO-8859-1') as file:
@@ -131,16 +127,21 @@ for i in range(1, 62):
 
 currentAS = remark_blocks[0][2]
 current_remark = ""
-for header, block, AS in remark_blocks:
+current_header = ""
+for initial_header, block, AS in remark_blocks:
     if currentAS != AS:
         current_remark = ""
+        current_header = create_header(initial_header.lower())
     currentAS = AS
-    header = create_header(header.lower())
+    header = create_header(initial_header.lower())
     current_remark = "" if "peer" in header else current_remark
+    current_header = create_header(initial_header.lower()) if "peer" in header else current_header
     current_remark = "provider" if any(word in header for word in provider) else current_remark
     TruthDict[currentAS][0] = True if any(word in header for word in provider) else TruthDict[currentAS][0]
+    current_header = header if any(word in header for word in provider) else current_header
     current_remark = "customer" if any(word in header for word in customer) else current_remark
     TruthDict[currentAS][1] = True if any(word in header for word in customer) else TruthDict[currentAS][1]
+    current_header = header if any(word in header for word in customer) else current_header
     if 'ipv6' in header.lower(): continue
     if current_remark != "provider" and current_remark != "customer": continue
     tor = 'C2P' if current_remark == "provider" else 'P2C'
@@ -150,16 +151,19 @@ for header, block, AS in remark_blocks:
 
 current_remark = False
 currentAS = remark_blocks[0][2]
-for header, block, AS in remark_blocks:
+current_header = ""
+for initial_header, block, AS in remark_blocks:
     if not TruthDict[AS][0] or not TruthDict[AS][1]: continue
     if currentAS != AS:
         current_remark = False
+        current_header = create_header(initial_header.lower())
     currentAS = AS
-    header = create_header(header)
+    header = create_header(initial_header.lower())
     current_remark = False if current_remark == '' else current_remark
+    current_header = header if current_remark == '' else current_header
     current_remark = True if "peer" in header.lower() else current_remark
-    current_remark = False if any(word in header for word in provider) else current_remark
-    current_remark = False if any(word in header for word in customer) else current_remark
+    current_header = header if "peer" in header.lower() else current_header
+    current_remark = False if any(word in header for word in (provider + customer)) else current_remark
     if 'ipv6' in header.lower(): continue
     if not current_remark: continue
     add_entry(block, AS.upper(), 'P2P')
@@ -171,4 +175,6 @@ print("P2C Value is:", list(IRR.values()).count("P2C"))
 print("C2P Value is:", list(IRR.values()).count("C2P"))
 with open("./../../Pickles/IRRv2.pickle", "wb") as p:
     pickle.dump(IRR, p)
+with open("./../../Pickles/Remarks Relevant to Remarks Heuristic.pickle", "wb") as p:
+    pickle.dump(relevant_remarks, p)
 

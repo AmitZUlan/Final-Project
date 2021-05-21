@@ -196,47 +196,30 @@ for i in range(1, 62):
 MNT_AS_Dict = mnt_sibling_insertion(MNTDict)
 sets_AS_Dict = mnt_sibling_insertion(sets_siblings)
 
-dicts = (MailDict, OrgDict, MNTDict, AdminDict, techDict, notifyDict)
+dicts = (MailDict, OrgDict, MNTDict, AdminDict, techDict, notifyDict, NamesDict, MNT_AS_Dict, sets_AS_Dict)
 fields = ('domain', 'org', 'mnt-by', 'admin', 'tech', 'notify')
 titles = ('MailDict', 'OrgDict', 'MNTDict', 'AdminDict', 'techDict', 'notifyDict', 'NamesDict', 'MNTDict by AS', 'Sets Siblings')
 
-for field_dict, title in zip(dicts + (NamesDict, MNT_AS_Dict, sets_AS_Dict), titles):
+for field_dict, title in zip(dicts, titles):
     for i in range(4):
         plot_dict_hist(field_dict, title, CDF=bool(i & 1), norm=bool(i & 2))
 
+for field_dict, title in zip(dicts, titles):
+    with open():
 
-for field_dict, field in zip(dicts, fields):
-    sibling_insertion(field_dict, field, max_len=5)
+# for field_dict, field in zip(dicts, fields):
+#     sibling_insertion(field_dict, field, max_len=5)
 
-sibling_insertion(NamesDict, 'name')
-sibling_insertion(MNT_AS_Dict, 'mnt-by-as')
-sibling_insertion(sets_AS_Dict, 'set_mnt-by-as', max_len=1000)  # AS1, AS2 S2S  AS2, AS3 S2S
-
-
-concat_siblings()
+# sibling_insertion(NamesDict, 'name')
+# sibling_insertion(MNT_AS_Dict, 'mnt-by-as')
+# sibling_insertion(sets_AS_Dict, 'set_mnt-by-as', max_len=1000)  # AS1, AS2 S2S  AS2, AS3 S2S
 
 
-keys = set(siblingDict.keys())
-percent = [int(i * len(keys) / 100) for i in range(101)]
-percent_set = set(percent)
-
-ToR_count = 0
-for ToR in keys:
-    ToR_count += 1
-    if ToR_count in percent_set:
-        print(f"{percent.index(ToR_count)}%")
-    AS = ToR[1]
-    siblings = set().union(*AS_Siblings[AS].values())
-    for sibling1 in siblings:
-        for sibling2 in siblings:
-            if AS == sibling1 or AS == sibling2: continue
-            assert (sibling1, AS) in keys
-            assert (AS, sibling2) in keys
-
-# print(siblingDict)
-
-with open("./../../Pickles/SiblingsDict.pickle", "wb") as p:
-    pickle.dump(siblingDict, p)
+# concat_siblings()
+#
+#
+# with open("./../../Pickles/SiblingsDict.pickle", "wb") as p:
+#     pickle.dump(siblingDict, p)
 
 
 with open("./../../Example Files/Siblings Threshold=5.csv", mode='w', newline='') as f:
