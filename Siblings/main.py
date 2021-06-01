@@ -140,6 +140,7 @@ def plot_dict_hist(dic, graphtitle, xlabel='len of list', ylabel='# of list with
     Count_y = Counter(y)
     keys = list(Count_y.keys())
     keys.sort()
+    # summary = len([len(val) for val in dic.values()])
     summary = sum([y.count(xj) for xj in keys])
     if norm:
         for xi in keys:
@@ -155,7 +156,7 @@ def plot_dict_hist(dic, graphtitle, xlabel='len of list', ylabel='# of list with
                      (xi, yi),
                      textcoords="offset points",
                      xytext=(20, 3),
-                     ha='center',
+                     ha='right',
                      )
     plt.xlabel(xlabel)
     plt.ylabel(ylabel)
@@ -205,7 +206,8 @@ for field_dict, title in zip(dicts, titles):
         plot_dict_hist(field_dict, title, CDF=bool(i & 1), norm=bool(i & 2))
 
 for field_dict, title in zip(dicts, titles):
-    with open():
+    with open(f"./../../Pickles/Siblings/{title}.pickle", "wb") as p:
+        pickle.dump(field_dict, p)
 
 # for field_dict, field in zip(dicts, fields):
 #     sibling_insertion(field_dict, field, max_len=5)

@@ -18,8 +18,9 @@ def coverage(given_IRR, key, AS_coverage_set1, AS_coverage_set2):
         AS_coverage_set2.add(AS)
 
 
-def reverse_match(_dict, rev_dict, key):
-    if _dict.get(key, 'Unknown') == 'Unknown' or rev_dict.get(key[::-1], 'Unknown') == 'Unknown':
+def reverse_match(_dict, rev_dict, key, forbidden_list):
+    if _dict.get(key, 'Unknown') == 'Unknown' or rev_dict.get(key[::-1], 'Unknown') == 'Unknown' or\
+            key[0] in forbidden_list or key[1] in forbidden_list:
         return 0, 0
     return 1, _dict[key] == rev_dict[key[::-1]][::-1]
 
@@ -30,6 +31,8 @@ def check_mistakes(given_IRR, rev_IRR, msg, mistakes, classifications_2_sided, c
           f'{mistake_threshold}%%.' % datetime.now().strftime('%H:%M:%S'))
     forbidden_list = create_forbidden_list(mistakes, classifications_2_sided, classifications, mistake_threshold, 0)
     results = results_calculation(given_IRR, rev_IRR, forbidden_list)
+    forbidden_list = create_forbidden_list(mistakes, classifications_2_sided, classifications, mistake_threshold, 3)
+    results += results_calculation(given_IRR, rev_IRR, forbidden_list)
     forbidden_list = create_forbidden_list(mistakes, classifications_2_sided, classifications, mistake_threshold, 5)
     results += results_calculation(given_IRR, rev_IRR, forbidden_list)
     with open(f'./../../Pickles/Mistakes/{msg[:-1]}/Mistake Threshold is {mistake_threshold}%.pickle', 'wb') as p:
@@ -38,21 +41,30 @@ def check_mistakes(given_IRR, rev_IRR, msg, mistakes, classifications_2_sided, c
 
 
 def results_calculation(given_IRR, rev_IRR, forbidden_list):
+    keys = given_IRR.keys()
+    IRR_dup = dict()
+    for key in keys:
+        if given_IRR[key] == 'Unknown': continue
+        if key[0] in forbidden_list or key in forbidden_list: continue
+        IRR_dup[key] = given_IRR[key]
     two_sided_classifications = 0
     two_sided_agreements = 0
     ToR_Count = 0
     AS_coverage_set_1_side = set()
     AS_coverage_set_2_side = set()
-    keys = given_IRR.keys()
+    keys = IRR_dup.keys()
     for key in keys:
-        if key[0] in forbidden_list or key in forbidden_list: continue
-        ToR_Count += given_IRR[key] != 'Unknown'
-        key_2_sided, key_2_sided_match = reverse_match(given_IRR, rev_IRR, key)
+        ToR_Count += IRR_dup[key] != 'Unknown'
+        key_2_sided, key_2_sided_match = reverse_match(IRR_dup, rev_IRR, key, forbidden_list)
         two_sided_classifications += key_2_sided
         two_sided_agreements += key_2_sided_match
-        coverage(given_IRR, key, AS_coverage_set_1_side, AS_coverage_set_2_side)
+        coverage(IRR_dup, key, AS_coverage_set_1_side, AS_coverage_set_2_side)
+    ToRs = set.union(
+        {k for k in IRR_dup.keys() if k not in forbidden_list and IRR_dup[k] != 'Unknown'},
+        {k[::-1] for k in IRR_dup.keys() if k not in forbidden_list and IRR_dup[k] != 'Unknown'},
+    )
     results = [(ToR_Count, two_sided_classifications, two_sided_agreements,
-                AS_coverage_set_1_side, AS_coverage_set_2_side, forbidden_list)]
+                AS_coverage_set_1_side, AS_coverage_set_2_side, forbidden_list, len(ToRs))]
     return results
 
 
@@ -116,7 +128,7 @@ if __name__ == '__main__':
                 count -= 1
                 processes.remove(processes[0])
 
-        for threshold in range(31):
+        for threshold in range(11):
             args = (*arg, mistakes, classifications_2_sided, classifications, threshold)
             p = mp.Process(target=min_2_sided_requirement, args=args)
             processes.append(p)

@@ -81,7 +81,7 @@ def create_header(initial_header):
 
 
 def add_entry(block, AS1, tor, is_export=False):
-    global IRR, MemDict, relevant_remarks, current_header
+    global IRR, MemDict, relevant_remarks, relevant_remarks_rev, current_header
     delim_remove = 'export:' if is_export else 'import:'
     source_delim = 'to ' if is_export else 'from '
     for rem in (re.split(delim.replace("|" + delim_remove, ''), block.lower())):
@@ -96,6 +96,7 @@ def add_entry(block, AS1, tor, is_export=False):
                 IRR[(AS1, AS2)] = tor
                 relevant_remarks[current_header] = relevant_remarks.get(current_header, dict())
                 relevant_remarks[current_header][(AS1, AS2)] = tor
+                relevant_remarks_rev[(AS1, AS2)] = current_header
 
 
 with open("./../../Pickles/Mem.pickle", "rb") as p:
@@ -108,6 +109,7 @@ provider = ["provider", "upstream", "uplink"]
 TruthDict = dict()
 IRR = dict()
 relevant_remarks = dict()
+relevant_remarks_rev = dict()
 
 for i in range(1, 62):
     with codecs.open(f"./../../Sources/{i}.db", encoding='ISO-8859-1') as file:
@@ -177,4 +179,6 @@ with open("./../../Pickles/IRRv2.pickle", "wb") as p:
     pickle.dump(IRR, p)
 with open("./../../Pickles/Remarks Relevant to Remarks Heuristic.pickle", "wb") as p:
     pickle.dump(relevant_remarks, p)
+with open("./../../Pickles/rev Remarks Relevant to Remarks Heuristic.pickle", "wb") as p:
+    pickle.dump(relevant_remarks_rev, p)
 
