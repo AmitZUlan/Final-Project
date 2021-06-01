@@ -73,6 +73,8 @@ def min_2_sided_requirement(given_IRR, rev_IRR, msg, mistakes, classifications_2
           f'{min_2_sided} 2-Sided ToRs.' % datetime.now().strftime('%H:%M:%S'))
     forbidden_list = create_forbidden_list(mistakes, classifications_2_sided, classifications, 100, min_2_sided)
     results = results_calculation(given_IRR, rev_IRR, forbidden_list)
+    forbidden_list = create_forbidden_list(mistakes, classifications_2_sided, classifications, 20, min_2_sided)
+    results += results_calculation(given_IRR, rev_IRR, forbidden_list)
     forbidden_list = create_forbidden_list(mistakes, classifications_2_sided, classifications, 10, min_2_sided)
     results += results_calculation(given_IRR, rev_IRR, forbidden_list)
     with open(f'./../../Pickles/2-Sides Requirement/{msg[:-1]}/Requirement of at least '

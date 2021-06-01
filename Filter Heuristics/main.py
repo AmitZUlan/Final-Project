@@ -60,8 +60,8 @@ def force_2_sided(given_IRR, mistakes, classifications_2_sided, rev_relevant_dic
     return IRR_dup
 
 
-two_sided_thresholds = (3, 3, 5)
-agreements_thresholds = (90, 80, 80)
+two_sided_thresholds = (3, 3, 3)
+agreements_thresholds = (80, 80, 80)
 IRR_Total = {'Sets': IRR3, 'Remarks': IRR2, 'I_E': IRR1}
 for name, agreements_threshold, two_sided_threshold in zip(names, agreements_thresholds, two_sided_thresholds):
     with open(f'./../../Pickles/Mistakes/{name} Dictionary Mistakes.pickle', 'rb') as p:

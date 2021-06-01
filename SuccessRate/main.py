@@ -97,9 +97,10 @@ def IRR_analysis(given_IRR, rev_IRR, log, is_filtered):
     P2C = [confusion_matrix['P2C']['P2P'], confusion_matrix['P2C']['P2C'], confusion_matrix['P2C']['C2P']]
     C2P = [confusion_matrix['C2P']['P2P'], confusion_matrix['C2P']['P2C'], confusion_matrix['C2P']['C2P']]
     padding = 12
-    LOG(log, '\tP2P matching rate (Compared to CAIDA) is %s\n' % (str(0 if not sum(P2P) else round(float(P2P[0]) / (sum(P2P)) * 100, 2)) + "%"))
-    LOG(log, '\tP2C matching rate (Compared to CAIDA) is %s\n' % (str(0 if not sum(P2C) else round(float(P2C[1]) / (sum(P2C)) * 100, 2)) + "%"))
-    LOG(log, '\tC2P matching rate (Compared to CAIDA) is %s\n' % (str(0 if not sum(C2P) else round(float(C2P[2]) / (sum(C2P)) * 100, 2)) + "%"))
+    LOG(log, f'\tP2P matching rate (Compared to CAIDA) is %s\n' % (str(0 if not sum(P2P) else round(float(P2P[0]) / (sum(P2P)) * 100, 2)) + "%"))
+    LOG(log, f'\tP2C {"and C2P " if not is_filtered else ""}matching rate (Compared to CAIDA) is %s\n' % (str(0 if not sum(P2C) else round(float(P2C[1]) / (sum(P2C)) * 100, 2)) + "%"))
+    if not is_filtered:
+        LOG(log, f'\tC2P matching rate (Compared to CAIDA) is %s\n' % (str(0 if not sum(C2P) else round(float(C2P[2]) / (sum(C2P)) * 100, 2)) + "%"))
     LOG(log, '\tConfusion matrix is:               %s, %s, %s\n'
         % ('IRR P2P'.ljust(padding), 'IRR P2C'.ljust(12), 'IRR C2P'.ljust(padding)))
     LOG(log, '\t' + ' ' * len('Confusion matrix is:\t') + '%s, %s, %s, %s\n' % ('CAIDA P2P'.rjust(padding),
@@ -150,7 +151,7 @@ if __name__ == '__main__':
         (IRR1_F, IRR1_F, 'I_E Dictionary:', True, True),
         (IRR2_F, IRR1_F, 'Remarks Dictionary:', False, True),
         (IRR3_F, IRR1_F, 'Sets Dictionary:', False, True),
-        (IRR, IRR, 'Overall Dictionary:'),
+        (IRR, IRR, 'Overall Dictionary:', False, True),
     ]
     processes = list()
     for arg in args_list:
