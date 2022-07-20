@@ -1,14 +1,7 @@
 import pickle
 import multiprocessing as mp
 from datetime import datetime
-
-if __name__ == '__main__':
-    with open("../Pickles/IRR.pickle", "rb") as p:
-        IRR1 = pickle.load(p)
-    with open("../Pickles/IRRv2.pickle", "rb") as p:
-        IRR2 = pickle.load(p)
-    with open("../Pickles/IRRv3.pickle", "rb") as p:
-        IRR3 = pickle.load(p)
+import os
 
 
 def coverage(given_IRR, key, AS_coverage_set1, AS_coverage_set2):
@@ -35,6 +28,8 @@ def check_mistakes(given_IRR, rev_IRR, msg, mistakes, classifications_2_sided, c
     results += results_calculation(given_IRR, rev_IRR, forbidden_list)
     forbidden_list = create_forbidden_list(mistakes, classifications_2_sided, classifications, mistake_threshold, 5)
     results += results_calculation(given_IRR, rev_IRR, forbidden_list)
+    if not os.path.exists(f'../Pickles/Mistakes/{msg[:-1]}'):
+        os.mkdir(f'../Pickles/Mistakes/{msg[:-1]}')
     with open(f'../Pickles/Mistakes/{msg[:-1]}/Mistake Threshold is {mistake_threshold}%.pickle', 'wb') as p:
         pickle.dump(results, p)
     print(f'%s: {msg[:-1]}, Mistake Threshold is {mistake_threshold}%%, Process Finished.' % datetime.now().strftime('%H:%M:%S'))
@@ -77,6 +72,10 @@ def min_2_sided_requirement(given_IRR, rev_IRR, msg, mistakes, classifications_2
     results += results_calculation(given_IRR, rev_IRR, forbidden_list)
     forbidden_list = create_forbidden_list(mistakes, classifications_2_sided, classifications, 10, min_2_sided)
     results += results_calculation(given_IRR, rev_IRR, forbidden_list)
+    if not os.path.exists(f'../Pickles/2-Sides Requirement'):
+        os.mkdir(f'../Pickles/2-Sides Requirement')
+    if not os.path.exists(f'../Pickles/2-Sides Requirement/{msg[:-1]}'):
+        os.mkdir(f'../Pickles/2-Sides Requirement/{msg[:-1]}')
     with open(f'../Pickles/2-Sides Requirement/{msg[:-1]}/Requirement of at least '
               f'{min_2_sided} 2-Sided ToRs.pickle', 'wb') as p:
         pickle.dump(results, p)
@@ -100,7 +99,13 @@ def create_forbidden_list(mistakes, classifications_2_sided, classifications, mi
     return forbidden_list
 
 
-if __name__ == '__main__':
+def main():
+    with open("../Pickles/IRR.pickle", "rb") as p:
+        IRR1 = pickle.load(p)
+    with open("../Pickles/IRRv2.pickle", "rb") as p:
+        IRR2 = pickle.load(p)
+    with open("../Pickles/IRRv3.pickle", "rb") as p:
+        IRR3 = pickle.load(p)
     args_list = [
         (IRR3, IRR1, 'Sets Dictionary:'),
         (IRR2, IRR1, 'Remarks Dictionary:'),

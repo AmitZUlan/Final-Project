@@ -95,75 +95,75 @@ def conf_calc(key, class_list):
     return conf_dict[max(confidence1, confidence2, confidence3)], max(confidence1, confidence2, confidence3)
 
 
-count0 = 0
-count1 = 0
-count2 = 0
-count90 = 0
-count80 = 0
-count70 = 0
-count60 = 0
-count50 = 0
-count00 = 0
+def main():
+    global IRR, IRR_class_only, dict_list, mistakes_list, classifications_list, num_to_class
+    count0 = 0
+    count1 = 0
+    count2 = 0
+    count90 = 0
+    count80 = 0
+    count70 = 0
+    count60 = 0
+    count50 = 0
+    count00 = 0
+    ToR_count = 0
+    percent = list(int(i * len(set().union(IRR1.keys(), IRR2.keys(), IRR3.keys()))/20) for i in range(1, 21))
+    percent.append(1)
+    percent.sort()
+    percent_set = set(percent)
+    for key in set().union(IRR1.keys(), IRR2.keys(), IRR3.keys()):
+        ToR_count += 1
+        if ToR_count in percent_set:
+            print(f"{percent.index(ToR_count) * 5}%")
+        class_list = variable_extraction(key, dict_list)
+        value = conf_calc(key, class_list)
+        IRR[key] = value
+        IRR_class_only[key] = value[0]
+        if value[0] != 'Unknown':
+            if key[::-1] not in IRR or IRR[key[::-1]][1] < value[1]:
+                IRR[key[::-1]] = (value[0][::-1], value[1])
+                IRR_class_only[key[::-1]] = value[0][::-1]
+        if class_list.count(0) == 0:
+            count0 += 1
+            variable_extraction(key, dict_list)
+            print(key, IRR[key])
+        if class_list.count(0) == 1:
+            count1 += 1
+        if class_list.count(0) == 2:
+            count2 += 1
+        if IRR[key][1] > 0.9:
+            count90 += 1
+        if IRR[key][1] > 0.8:
+            count80 += 1
+        if IRR[key][1] > 0.7:
+            count70 += 1
+        if IRR[key][1] > 0.6:
+            count60 += 1
+        if IRR[key][1] >= 0.5:
+            count50 += 1
+        if IRR[key][1] < 0.5:
+            count00 += 1
+    # print(IRR)
+    print("number of full class_lists is:", count0)
+    print("number of missing 1 classification class_lists is:", count1)
+    print("number of missing 2 classification class_lists is:", count2)
+    print("number of ToRs above 90% confidence is:", count90)
+    print("number of ToRs above 80% confidence is:", count80)
+    print("number of ToRs above 70% confidence is:", count70)
+    print("number of ToRs above 60% confidence is:", count60)
+    print("number of ToRs above 50% confidence is:", count50)
+    print("number of ToRs below 50% confidence is:", count00)
 
+    with open("../Pickles/IRR_Confidence.pickle", "wb") as p:
+        pickle.dump(IRR, p)
+    with open("../Pickles/IRR_Confidence_class_only.pickle", "wb") as p:
+        pickle.dump(IRR_class_only, p)
 
-ToR_count = 0
-percent = list(int(i * len(set().union(IRR1.keys(), IRR2.keys(), IRR3.keys()))/20) for i in range(1, 21))
-percent.append(1)
-percent.sort()
-percent_set = set(percent)
-for key in set().union(IRR1.keys(), IRR2.keys(), IRR3.keys()):
-    ToR_count += 1
-    if ToR_count in percent_set:
-        print(f"{percent.index(ToR_count) * 5}%")
-    class_list = variable_extraction(key, dict_list)
-    value = conf_calc(key, class_list)
-    IRR[key] = value
-    IRR_class_only[key] = value[0]
-    if value[0] != 'Unknown':
-        if key[::-1] not in IRR or IRR[key[::-1]][1] < value[1]:
-            IRR[key[::-1]] = (value[0][::-1], value[1])
-            IRR_class_only[key[::-1]] = value[0][::-1]
-    if class_list.count(0) == 0:
-        count0 += 1
-        variable_extraction(key, dict_list)
-        print(key, IRR[key])
-    if class_list.count(0) == 1:
-        count1 += 1
-    if class_list.count(0) == 2:
-        count2 += 1
-    if IRR[key][1] > 0.9:
-        count90 += 1
-    if IRR[key][1] > 0.8:
-        count80 += 1
-    if IRR[key][1] > 0.7:
-        count70 += 1
-    if IRR[key][1] > 0.6:
-        count60 += 1
-    if IRR[key][1] >= 0.5:
-        count50 += 1
-    if IRR[key][1] < 0.5:
-        count00 += 1
-# print(IRR)
-print("number of full class_lists is:", count0)
-print("number of missing 1 classification class_lists is:", count1)
-print("number of missing 2 classification class_lists is:", count2)
-print("number of ToRs above 90% confidence is:", count90)
-print("number of ToRs above 80% confidence is:", count80)
-print("number of ToRs above 70% confidence is:", count70)
-print("number of ToRs above 60% confidence is:", count60)
-print("number of ToRs above 50% confidence is:", count50)
-print("number of ToRs below 50% confidence is:", count00)
-
-with open("../Pickles/IRR_Confidence.pickle", "wb") as p:
-    pickle.dump(IRR, p)
-with open("../Pickles/IRR_Confidence_class_only.pickle", "wb") as p:
-    pickle.dump(IRR_class_only, p)
-
-with open("../Example Files/IRR.csv", mode='w', newline='') as f:
-    fwrite = csv.writer(f, delimiter=',')
-    fwrite.writerow(['AS1', 'AS2', 'ToR', 'Confidence'])
-    for k in IRR.keys():
-        fwrite.writerow([k[0][2:], k[1][2:], IRR[k][0], IRR[k][1]])
+    with open("../Example Files/IRR.csv", mode='w', newline='') as f:
+        fwrite = csv.writer(f, delimiter=',')
+        fwrite.writerow(['AS1', 'AS2', 'ToR', 'Confidence'])
+        for k in IRR.keys():
+            fwrite.writerow([k[0][2:], k[1][2:], IRR[k][0], IRR[k][1]])
 
 
 

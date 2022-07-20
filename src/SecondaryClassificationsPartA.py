@@ -3,7 +3,18 @@ import codecs
 import re
 import time
 
+
+MemDict = dict()
+DateDict = dict()
+remark_blocks = list()
+customer = ["customer", "client", "downstream", "downlink"]
+provider = ["provider", "upstream", "uplink"]
+TruthDict = dict()
+IRR = dict()
 words = list()
+relevant_remarks = dict()
+relevant_remarks_rev = dict()
+current_header = dict()
 st = time.time()
 delim = "mntner:|descr:|admin-c:|tech-c:|upd-to:|auth:|mnt-by:|changed:|source:|mnt-nfy:|notify:|person:|address" \
         ":|phone:|fax-no:|e-mail:|nic-hdl:|remarks:|route:|origin:|aut-num:|as-name:|export:|default:|inet-rtr:|local" \
@@ -106,7 +117,12 @@ def add_entry(block, AS1, tor, is_export=False):
 
 
 def main():
-    for i in range(1, 62):
+    global MemDict, DateDict, remark_blocks, customer, provider, TruthDict, IRR, words, relevant_remarks, relevant_remarks_rev, current_header
+    with open("../Pickles/Mem.pickle", "rb") as p:
+        MemDict = pickle.load(p)
+    with open("../Pickles/DateDict.pickle", "rb") as p:
+        DateDict = pickle.load(p)
+    for i in range(61):
         with codecs.open(f"../Sources/{i}.db", encoding='ISO-8859-1') as file:
             print(f'{i}:', time.time() - st)
             if file is None: continue

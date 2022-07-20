@@ -1,13 +1,5 @@
 import pickle
-import multiprocessing as mp
-
-if __name__ == '__main__':
-    with open("../Pickles/Remarks Relevant to Remarks Heuristic.pickle", "rb") as p:
-        relevant_remarks = pickle.load(p)
-    with open("../Pickles/Sets Relevant to Sets Heuristic.pickle", "rb") as p:
-        relevant_sets = pickle.load(p)
-    with open("../Pickles/IRR.pickle", "rb") as p:
-        I_E_dict = pickle.load(p)
+import os
 
 
 def key_analysis(given_dicts, key1):
@@ -36,6 +28,10 @@ def secondary_heuristic_analysis(given_IRR, I_E_dict, msg):
             add_key_to_set(mistakes, key, arc, key_2_sided and not key_2_sided_match)
             add_key_to_set(classifications_2_sided, key, arc, key_2_sided)
             add_key_to_set(classifications, key, arc)
+    if not os.path.exists('../Pickles/Mistakes'):
+        os.mkdir("../Pickles/Mistakes")
+    if not os.path.exists('../Pickles/Classifications'):
+        os.mkdir("../Pickles/Classifications")
     with open(f'../Pickles/Mistakes/{msg} Mistakes.pickle', 'wb') as p:
         pickle.dump(mistakes, p)
     with open(f'../Pickles/Classifications/{msg} Classifications 2-Sided.pickle', 'wb') as p:
@@ -44,12 +40,12 @@ def secondary_heuristic_analysis(given_IRR, I_E_dict, msg):
         pickle.dump(classifications, p)
 
 
-if __name__ == '__main__':
-    # p1 = mp.Process(target=secondary_heuristic_analysis, args=(relevant_sets, I_E_dict, 'Sets Dictionary'))
-    # p2 = mp.Process(target=secondary_heuristic_analysis, args=(relevant_remarks, I_E_dict, 'Remarks Dictionary'))
-    # p1.start()
-    # p2.start()
-    # p1.join()
-    # p2.join()
+def main():
+    with open("../Pickles/Remarks Relevant to Remarks Heuristic.pickle", "rb") as p:
+        relevant_remarks = pickle.load(p)
+    with open("../Pickles/Sets Relevant to Sets Heuristic.pickle", "rb") as p:
+        relevant_sets = pickle.load(p)
+    with open("../Pickles/IRR.pickle", "rb") as p:
+        I_E_dict = pickle.load(p)
     secondary_heuristic_analysis(relevant_remarks, I_E_dict, 'Remarks Dictionary')
     secondary_heuristic_analysis(relevant_sets, I_E_dict, 'Sets Dictionary')

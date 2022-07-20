@@ -5,7 +5,9 @@ st = time.time()
 IRR = dict()
 relevant_sets = dict()
 relevant_sets_rev = dict()
-
+MemDict = dict()
+SetsDict = dict()
+NamesDict = dict()
 
 customers = ["customer", "custs", "downstream", "client", "downlink"]
 providers = ["provider", "upstream", "uplink", "backbone"]
@@ -43,6 +45,7 @@ def decipher_name(name, namelist):
 
 
 def main():
+    global MemDict, SetsDict, NamesDict
     with open("../Pickles/Mem.pickle", "rb") as p:
         MemDict = pickle.load(p)
     with open("../Pickles/Sets.pickle", "rb") as p:

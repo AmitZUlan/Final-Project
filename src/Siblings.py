@@ -185,7 +185,7 @@ def concat_siblings():
             siblingDict[(AS, sibling)] = ('S2S', comment)
 
 
-for i in range(1, 62):
+for i in range(61):
     with codecs.open(f"../Sources/{i}.db", encoding='ISO-8859-1') as file:
         print(f'{i}:', time.time() - st)
         if file is None: continue

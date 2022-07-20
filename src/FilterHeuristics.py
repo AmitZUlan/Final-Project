@@ -1,5 +1,5 @@
 import pickle
-
+import os
 
 names = [
     'Sets',
@@ -9,12 +9,9 @@ names = [
 
 forbidden_offset = 5
 two_sided_offset_100 = 0
-with open("../Pickles/IRR.pickle", "rb") as p:
-    IRR1 = pickle.load(p)
-with open("../Pickles/IRRv2.pickle", "rb") as p:
-    IRR2 = pickle.load(p)
-with open("../Pickles/IRRv3.pickle", "rb") as p:
-    IRR3 = pickle.load(p)
+IRR1 = dict()
+IRR2 = dict()
+IRR3 = dict()
 
 
 def filter_all_forbidden_ToRs(unfiltered_dict, mistake_threshold, two_sided_thresh_to_filter, name):
@@ -60,23 +57,33 @@ def force_2_sided(given_IRR, mistakes, classifications_2_sided, rev_relevant_dic
     return IRR_dup
 
 
-two_sided_thresholds = (3, 3, 3)
-agreements_thresholds = (80, 80, 80)
-IRR_Total = {'Sets': IRR3, 'Remarks': IRR2, 'I_E': IRR1}
-for name, agreements_threshold, two_sided_threshold in zip(names, agreements_thresholds, two_sided_thresholds):
-    with open(f'../Pickles/Mistakes/{name} Dictionary Mistakes.pickle', 'rb') as p:
-        mistakes = pickle.load(p)
-    with open(f'../Pickles/Classifications/{name} Dictionary Classifications 2-Sided.pickle', 'rb') as p:
-        classifications_2_sided = pickle.load(p)
-    if name != 'I_E':
-        with open(f"../Pickles/rev {name} Relevant to {name} Heuristic.pickle", "rb") as p:
-            rev_relevant_dict = pickle.load(p)
-    else:
-        rev_relevant_dict = None
-    print(f'{name}: Initial Number of keys - {len(IRR_Total[name].keys())}')
-    filter_all_forbidden_ToRs(IRR_Total[name], 100 - agreements_threshold, two_sided_threshold, name)
-    print(f'{name}: Number of keys after Filtering - {len(IRR_Total[name].keys())}')
-    IRR_Total[name] = force_2_sided(IRR_Total[name], mistakes, classifications_2_sided, rev_relevant_dict)
-    print(f'{name}: Final Number of keys - {len(IRR_Total[name].keys())}')
-    with open(f'../Pickles/Filtered/{name} Dictionary.pickle', 'wb') as p:
-        pickle.dump(IRR_Total[name], p)
+def main():
+    global IRR1, IRR2, IRR3, forbidden_offset, two_sided_offset_100
+    if not os.path.exists(f'../Pickles/Filtered'):
+        os.mkdir(f'../Pickles/Filtered')
+    with open("../Pickles/IRR.pickle", "rb") as p:
+        IRR1 = pickle.load(p)
+    with open("../Pickles/IRRv2.pickle", "rb") as p:
+        IRR2 = pickle.load(p)
+    with open("../Pickles/IRRv3.pickle", "rb") as p:
+        IRR3 = pickle.load(p)
+    two_sided_thresholds = (3, 3, 3)
+    agreements_thresholds = (80, 80, 80)
+    IRR_Total = {'Sets': IRR3, 'Remarks': IRR2, 'I_E': IRR1}
+    for name, agreements_threshold, two_sided_threshold in zip(names, agreements_thresholds, two_sided_thresholds):
+        with open(f'../Pickles/Mistakes/{name} Dictionary Mistakes.pickle', 'rb') as p:
+            mistakes = pickle.load(p)
+        with open(f'../Pickles/Classifications/{name} Dictionary Classifications 2-Sided.pickle', 'rb') as p:
+            classifications_2_sided = pickle.load(p)
+        if name != 'I_E':
+            with open(f"../Pickles/rev {name} Relevant to {name} Heuristic.pickle", "rb") as p:
+                rev_relevant_dict = pickle.load(p)
+        else:
+            rev_relevant_dict = None
+        print(f'{name}: Initial Number of keys - {len(IRR_Total[name].keys())}')
+        filter_all_forbidden_ToRs(IRR_Total[name], 100 - agreements_threshold, two_sided_threshold, name)
+        print(f'{name}: Number of keys after Filtering - {len(IRR_Total[name].keys())}')
+        IRR_Total[name] = force_2_sided(IRR_Total[name], mistakes, classifications_2_sided, rev_relevant_dict)
+        print(f'{name}: Final Number of keys - {len(IRR_Total[name].keys())}')
+        with open(f'../Pickles/Filtered/{name} Dictionary.pickle', 'wb') as p:
+            pickle.dump(IRR_Total[name], p)

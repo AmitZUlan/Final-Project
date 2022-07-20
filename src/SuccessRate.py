@@ -1,25 +1,10 @@
 import pickle
 from datetime import datetime
 import multiprocessing as mp
+import os
 
 
-with open("../Pickles/IRR_Confidence_class_only.pickle", "rb") as p:
-    IRR = pickle.load(p)
-with open("../Pickles/IRR.pickle", "rb") as p:
-    IRR1 = pickle.load(p)
-with open("../Pickles/IRRv2.pickle", "rb") as p:
-    IRR2 = pickle.load(p)
-with open("../Pickles/IRRv3.pickle", "rb") as p:
-    IRR3 = pickle.load(p)
-with open(f'../Pickles/Filtered/I_E Dictionary.pickle', 'rb') as p:
-    IRR1_F = pickle.load(p)
-with open(f'../Pickles/Filtered/Remarks Dictionary.pickle', 'rb') as p:
-    IRR2_F = pickle.load(p)
-with open(f'../Pickles/Filtered/Sets Dictionary.pickle', 'rb') as p:
-    IRR3_F = pickle.load(p)
-with open("../Pickles/Ref.pickle", "rb") as p:
-# with open(f'../Pickles/Filtered/Sets Dictionary.pickle', 'rb') as p:
-    Ref = pickle.load(p)
+Ref = dict()
 
 
 def LOG(log, str):
@@ -51,6 +36,9 @@ def add_key_to_set(dic, key, condition=True):
 
 
 def IRR_analysis(given_IRR, rev_IRR, log, is_filtered):
+    with open("../Pickles/Ref.pickle", "rb") as p:
+        # with open(f'../Pickles/Filtered/Sets Dictionary.pickle', 'rb') as p:
+        Ref = pickle.load(p)
     matching_classifications = 0
     two_sided_classifications = 0
     two_sided_agreements = 0
@@ -128,6 +116,8 @@ def IRR_analysis(given_IRR, rev_IRR, log, is_filtered):
 
 
 def log_IRR(IRR, rev_IRR, msg, is_IE=False, is_filtered=False):
+    if not os.path.exists('../Example Files/Logs'):
+        os.mkdir('../Example Files/Logs')
     log = open(f'../Example Files/Logs/%s {"Filtered " if is_filtered else ""}{msg[:-1]}.txt' % datetime.now().strftime('%d.%m.%y %H;%M;%S'), 'w')
     LOG(log, msg + '\n')
     mistakes, classifications_2_sided, classifications = IRR_analysis(IRR, rev_IRR, log, is_filtered)
@@ -143,11 +133,67 @@ def log_IRR(IRR, rev_IRR, msg, is_IE=False, is_filtered=False):
     log.close()
 
 
-if __name__ == '__main__':
+def main():
+    global Ref
+    # with open("../Pickles/IRR_Confidence_class_only.pickle", "rb") as p:
+    #     IRR = pickle.load(p)
+    with open("../Pickles/IRR.pickle", "rb") as p:
+        IRR1 = pickle.load(p)
+    with open("../Pickles/IRRv2.pickle", "rb") as p:
+        IRR2 = pickle.load(p)
+    with open("../Pickles/IRRv3.pickle", "rb") as p:
+        IRR3 = pickle.load(p)
+    # with open(f'../Pickles/Filtered/I_E Dictionary.pickle', 'rb') as p:
+    #     IRR1_F = pickle.load(p)
+    # with open(f'../Pickles/Filtered/Remarks Dictionary.pickle', 'rb') as p:
+    #     IRR2_F = pickle.load(p)
+    # with open(f'../Pickles/Filtered/Sets Dictionary.pickle', 'rb') as p:
+    #     IRR3_F = pickle.load(p)
+    with open("../Pickles/Ref.pickle", "rb") as p:
+        # with open(f'../Pickles/Filtered/Sets Dictionary.pickle', 'rb') as p:
+        Ref = pickle.load(p)
     args_list = [
         (IRR1, IRR1, 'I_E Dictionary:', True),
         (IRR2, IRR1, 'Remarks Dictionary:'),
         (IRR3, IRR1, 'Sets Dictionary:'),
+        # (IRR1_F, IRR1_F, 'I_E Dictionary:', True, True),
+        # (IRR2_F, IRR1_F, 'Remarks Dictionary:', False, True),
+        # (IRR3_F, IRR1_F, 'Sets Dictionary:', False, True),
+        # (IRR, IRR, 'Overall Dictionary:', False, True),
+    ]
+    processes = list()
+    for arg in args_list:
+        new_process = mp.Process(target=log_IRR, args=arg)
+        processes.append(new_process)
+        new_process.start()
+
+    for process in processes:
+        process.join()
+
+
+def main2():
+    global Ref
+    with open("../Pickles/IRR_Confidence_class_only.pickle", "rb") as p:
+        IRR = pickle.load(p)
+    with open("../Pickles/IRR.pickle", "rb") as p:
+        IRR1 = pickle.load(p)
+    with open("../Pickles/IRRv2.pickle", "rb") as p:
+        IRR2 = pickle.load(p)
+    with open("../Pickles/IRRv3.pickle", "rb") as p:
+        IRR3 = pickle.load(p)
+    with open(f'../Pickles/Filtered/I_E Dictionary.pickle', 'rb') as p:
+        IRR1_F = pickle.load(p)
+    with open(f'../Pickles/Filtered/Remarks Dictionary.pickle', 'rb') as p:
+        IRR2_F = pickle.load(p)
+    with open(f'../Pickles/Filtered/Sets Dictionary.pickle', 'rb') as p:
+        IRR3_F = pickle.load(p)
+    with open("../Pickles/Ref.pickle", "rb") as p:
+        # with open(f'../Pickles/Filtered/Sets Dictionary.pickle', 'rb') as p:
+        Ref = pickle.load(p)
+    args_list = [
+        # (IRR1, IRR1, 'I_E Dictionary:', True),
+        # (IRR2, IRR1, 'Remarks Dictionary:'),
+        # (IRR3, IRR1, 'Sets Dictionary:'),
         (IRR1_F, IRR1_F, 'I_E Dictionary:', True, True),
         (IRR2_F, IRR1_F, 'Remarks Dictionary:', False, True),
         (IRR3_F, IRR1_F, 'Sets Dictionary:', False, True),
@@ -163,4 +209,5 @@ if __name__ == '__main__':
         process.join()
 
 
-
+# if __name__ == '__main__':
+#     main()
