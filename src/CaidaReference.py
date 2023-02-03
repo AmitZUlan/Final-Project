@@ -4,6 +4,7 @@ import re
 import time
 from os import path
 
+
 path = path.abspath(path.dirname(__file__))
 with open("./CaidaReferences/CaidaReference.txt", 'r') as f:
     Ref = dict()
@@ -25,8 +26,28 @@ for line in file.split("\n"):
 print(Ref)
 print(len(list(Ref.keys())))
 
-with open(path + "../Pickles/Ref.pickle", "wb") as p:
+with open("../Pickles/Ref.pickle", "wb") as p:
     pickle.dump(Ref, p)
-with open(path + "../Example Files/RefDict.txt", "w") as f:
+with open("../Example Files/RefDict.txt", "w") as f:
     for k, v in Ref.items():
         f.write(str(k) + ": " + str(v) + "\n")
+
+
+# read Problink.txt
+with open('./CaidaReferences/ProbLink-dataset.txt') as f:
+    file = f.read()
+
+probLink = dict()
+tor = {'-1': 'P2C', '0': 'P2P', '1': 'S2S'}
+# convert to dictionary
+for line in file.split('\n'):
+    if line == '' or line[0] == '#': continue
+    line = line.split('#')[0]
+    inference = line.split('|')
+    probLink[f'AS{inference[0]}', f'AS{inference[1]}'] = tor[inference[2]]
+    probLink[f'AS{inference[1]}', f'AS{inference[0]}'] = tor[inference[2]][::-1]
+
+print(probLink)
+print((len(probLink.keys())))
+with open("../Pickles/Problink.pickle", "wb") as p:
+    pickle.dump(probLink, p)

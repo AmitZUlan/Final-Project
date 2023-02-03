@@ -22,13 +22,13 @@ def start_processes(*functions):
 
 if __name__ == '__main__':
     # start_processes(SourcesRenaming.main())
-    # start_processes(AnalyzeFiles.main(), Sets.main())
+    start_processes(AnalyzeFiles.main(), Sets.main())
     # start_processes(Swap.main())
     # start_processes(PreliminaryClassifications.main(), SecondaryClassificationsPartA.main(), SecondaryClassificationsPartB.main())
     # start_processes(SecondaryClassificationsAnalysis.main(), SuccessRate.main())
     # start_processes(MistakesAnalysis.main())
     # start_processes(FilterHeuristics.main())
     # start_processes(ConfidenceCalculations.main())
-    start_processes(SuccessRate.main2())
+    # start_processes(SuccessRate.main2())
 
 

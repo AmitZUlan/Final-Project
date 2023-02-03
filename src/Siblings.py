@@ -1,3 +1,4 @@
+import os
 import pickle
 import codecs
 import re
@@ -127,7 +128,7 @@ def block_list_analysis(block_list):
         field_analysis(block, notifyDict, 'notify:', key)
 
 
-def sibling_insertion(source_dict, field, forbidden_list={'dum'}, max_len=10**9):
+def sibling_insertion(source_dict, field, forbidden_list={'dum', 'yahoo', 'aol.com', 'hotmail', 'live.com', 'outlook.com', 'gmail', 'unspecified'}, max_len=10**9):
     global AS_Siblings
     for key in source_dict.keys():
         if len(source_dict[key]) < 2 or max_len < len(source_dict[key])\
@@ -170,6 +171,10 @@ def plot_dict_hist(dic, graphtitle, xlabel='len of list', ylabel='# of list with
     title += ' Normalized' if norm else ''
     title += ' CDF' if CDF else ''
     plt.suptitle(title)
+    if not os.path.exists(f'../Example Files/Plots'):
+        os.mkdir(f'../Example Files/Plots')
+    if not os.path.exists(f'../Example Files/Plots/Siblings'):
+        os.mkdir(f'../Example Files/Plots/Siblings')
     plt.savefig(f"../Example Files/Plots/Siblings/{title}.png", dpi=300)
     plt.close()
 
@@ -212,22 +217,25 @@ for field_dict, title in zip(dicts, titles):
         plot_dict_hist(field_dict, title, CDF=bool(i & 1), norm=bool(i & 2))
 
 for field_dict, title in zip(dicts, titles):
+    if not os.path.exists(f'../Pickles/Siblings'):
+        os.mkdir(f'../Pickles/Siblings')
     with open(f"../Pickles/Siblings/{title}.pickle", "wb") as p:
         pickle.dump(field_dict, p)
 
-# for field_dict, field in zip(dicts, fields):
-#     sibling_insertion(field_dict, field, max_len=5)
 
-# sibling_insertion(NamesDict, 'name')
-# sibling_insertion(MNT_AS_Dict, 'mnt-by-as')
-# sibling_insertion(sets_AS_Dict, 'set_mnt-by-as', max_len=1000)  # AS1, AS2 S2S  AS2, AS3 S2S
+for field_dict, field in zip(dicts, fields):
+    sibling_insertion(field_dict, field, max_len=5)
+
+sibling_insertion(NamesDict, 'name', max_len=5)
+sibling_insertion(MNT_AS_Dict, 'mnt-by-as', max_len=5)
+sibling_insertion(sets_AS_Dict, 'set_mnt-by-as', max_len=5)  # AS1, AS2 S2S  AS2, AS3 S2S
 
 
-# concat_siblings()
-#
-#
-# with open("../Pickles/SiblingsDict.pickle", "wb") as p:
-#     pickle.dump(siblingDict, p)
+concat_siblings()
+
+
+with open("../Pickles/SiblingsDict.pickle", "wb") as p:
+    pickle.dump(siblingDict, p)
 
 
 with open("../Example Files/Siblings Threshold=5.csv", mode='w', newline='') as f:
