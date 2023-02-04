@@ -1,4 +1,5 @@
 Sources
 Example Files
 Pickles
-**/*__pychache__*
+**/__pycache__/*
+.idea
